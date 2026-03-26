@@ -151,7 +151,12 @@ function GunHandler:castRay(spreadDegrees)
 end
 
 function GunHandler:fire()
-	if not self:canFire() then return nil end
+	if self.isReloading then return nil end
+	if self.ammo <= 0 then
+		ViewModelController.onEmpty()
+		return nil
+	end
+	if (tick() - self.lastFireTime) < self.config.fireRate then return nil end
 
 	local spread = self:getSpread()
 
@@ -165,6 +170,8 @@ function GunHandler:fire()
 		self.accumulatedSpread + self.config.rapidFireSpread,
 		self.config.maxSpread - self.config.baseSpread
 	)
+
+	ViewModelController.onFire()
 
 	local result = self:castRay(spread)
 	if result then
@@ -191,6 +198,7 @@ function GunHandler:reload()
 
 	self.isReloading = true
 	self.isReloadingValue.Value = true
+	ViewModelController.onReload()
 
 	task.delay(self.config.reloadTime, function()
 		local needed = self.config.capacity - self.ammo

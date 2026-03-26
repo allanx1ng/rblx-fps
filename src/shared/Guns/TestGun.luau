@@ -19,8 +19,10 @@ return {
 	spareAmmo = 60,  -- 3 extra mags
 
 	viewModelName = "TestGun",
-	-- Offsets from camera CFrame. Tune these in-game until it looks right.
-	-- Positive X = right, negative Y = down, negative Z = forward
 	hipOffset = CFrame.new(0.5, -0.4, -1.0),
-	adsOffset = CFrame.new(0, -0.3, -0.8),
+	adsDistance = 0.8,
+
+	recoilKick     = 0.08,  -- studs the gun snaps back toward camera per shot
+	recoilRotation = 4,     -- degrees the gun rotates upward per shot
+	recoilRecovery = 14,    -- lerp speed back to rest; higher = snappier
 }
