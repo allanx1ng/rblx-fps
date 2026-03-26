@@ -1,0 +1,97 @@
+{
+  "name": "fps-game-test",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+
+    "StarterPack": {
+      "TestGun": {
+        "$className": "Tool",
+        "$properties": { "RequiresHandle": false },
+        "GunScript": { "$path": "src/tools/TestGun/GunScript.client.luau" }
+      },
+      "Glock17": {
+        "$className": "Tool",
+        "GunScript": { "$path": "src/tools/Glock17/GunScript.client.luau" }
+      },
+      "M4": {
+        "$className": "Tool",
+        "GunScript": { "$path": "src/tools/M4/GunScript.client.luau" }
+      },
+      "Sniper": {
+        "$className": "Tool",
+        "GunScript": { "$path": "src/tools/Sniper/GunScript.client.luau" }
+      },
+      "TestGun2": {
+        "$className": "Tool",
+        "$properties": { "RequiresHandle": false },
+        "GunScript": { "$path": "src/tools/TestGun2/GunScript.client.luau" }
+      }
+    },
+
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+
+    "Workspace": {
+      "$properties": {
+        "FilteringEnabled": true
+      },
+      "Baseplate": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Color": [
+            0.38823,
+            0.37254,
+            0.38823
+          ],
+          "Locked": true,
+          "Position": [
+            0,
+            -10,
+            0
+          ],
+          "Size": [
+            512,
+            20,
+            512
+          ]
+        }
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Ambient": [
+          0,
+          0,
+          0
+        ],
+        "Brightness": 2,
+        "GlobalShadows": true,
+        "Outlines": false,
+        "Technology": "Voxel"
+      }
+    },
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    }
+  }
+}
