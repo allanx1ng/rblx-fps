@@ -66,13 +66,21 @@ local function setSprinting(value)
 	end
 end
 
+-- Sprint is suppressed while crouching or ADS, or when W isn't held
+local function canSprint()
+	return isSprinting
+		and not player:GetAttribute("IsCrouching")
+		and not player:GetAttribute("IsADS")
+		and UserInputService:IsKeyDown(Enum.KeyCode.W)
+end
+
 local function updateSpeed()
 	if player:GetAttribute("IsCrouching") then return end  -- CrouchController owns speed while crouching
 	local character = player.Character
 	if not character then return end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		local speed = if isSprinting and stamina > 0 then sprintSpeed() else walkSpeed()
+		local speed = if canSprint() and stamina > 0 then sprintSpeed() else walkSpeed()
 		if player:GetAttribute("IsADS") then
 			speed *= 0.5
 		end
@@ -81,12 +89,9 @@ local function updateSpeed()
 end
 
 -- If MaxStamina drops below current stamina, clamp immediately.
--- Also cancel sprinting the moment the player crouches.
 player.AttributeChanged:Connect(function(attr)
 	if attr == "MaxStamina" then
 		stamina = math.min(stamina, maxStamina())
-	elseif attr == "IsCrouching" and player:GetAttribute("IsCrouching") then
-		setSprinting(false)
 	end
 end)
 
@@ -104,9 +109,10 @@ RunService.Heartbeat:Connect(function(dt)
 
 	local max = maxStamina()
 
-	if isAlive and isSprinting and stamina > 0 then
+	local isMoving = humanoid ~= nil and humanoid.MoveDirection.Magnitude > 0
+	if isAlive and canSprint() and isMoving and stamina > 0 then
 		stamina = math.max(0, stamina - staminaDrainRate() * dt)
-	elseif not isSprinting or not isAlive then
+	elseif not (canSprint() and isMoving) or not isAlive then
 		timeSinceRelease += dt
 		if timeSinceRelease >= staminaRegenDelay() then
 			stamina = math.min(max, stamina + staminaRegenRate() * dt)
