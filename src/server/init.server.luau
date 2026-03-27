@@ -4,6 +4,64 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- local MarketplaceService = game:GetService("MarketplaceService")
 
 local PlayerStats = require(ReplicatedStorage.Shared.PlayerStats)
+local Guns = ReplicatedStorage.Shared.Guns
+
+-- ---------------------------------------------------------------------------
+-- Damage multipliers by body part name (works for both R6 and R15)
+-- ---------------------------------------------------------------------------
+local TORSO_PARTS = {
+	Torso = true,
+	UpperTorso = true,
+	LowerTorso = true,
+	HumanoidRootPart = true,  -- often what raycasts actually hit
+}
+
+local function getMultiplier(partName, config)
+	if partName == "Head" then
+		return config.headshotMultiplier or 1
+	elseif TORSO_PARTS[partName] then
+		return 1
+	else
+		return config.limbMultiplier or 1  -- arms, legs
+	end
+end
+
+ReplicatedStorage.Remotes.DealDamage.OnServerEvent:Connect(function(shooter, hitPart)
+	-- Basic sanity checks on the incoming data
+	if not hitPart or not hitPart:IsA("BasePart") then return end
+
+	local victimCharacter = hitPart:FindFirstAncestorOfClass("Model")
+	if not victimCharacter then return end
+
+	local humanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return end
+
+	-- Prevent self-damage
+	local victim = Players:GetPlayerFromCharacter(victimCharacter)
+	if victim == shooter then return end
+
+	-- Shooter must be alive with a character
+	local shooterCharacter = shooter.Character
+	if not shooterCharacter then return end
+	local shooterHRP = shooterCharacter:FindFirstChild("HumanoidRootPart")
+	local victimHRP  = victimCharacter:FindFirstChild("HumanoidRootPart")
+	if not shooterHRP or not victimHRP then return end
+
+	-- Find the shooter's equipped tool and load its server-side config
+	local tool = shooterCharacter:FindFirstChildOfClass("Tool")
+	if not tool then return end
+
+	local configModule = Guns:FindFirstChild(tool.Name)
+	if not configModule then return end
+	local config = require(configModule)
+
+	-- Distance sanity check with generous latency tolerance
+	local distance = (shooterHRP.Position - victimHRP.Position).Magnitude
+	if distance > (config.range or 500) * 1.5 then return end
+
+	local damage = config.damage * getMultiplier(hitPart.Name, config)
+	humanoid:TakeDamage(damage)
+end)
 
 -- ---------------------------------------------------------------------------
 -- Game Pass IDs — fill these in when you create the passes on the Creator Hub

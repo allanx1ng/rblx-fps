@@ -9,6 +9,7 @@ player.CameraMode = Enum.CameraMode.LockFirstPerson
 -- Hide default cursor; the Crosshair ScreenGui takes over
 UserInputService.MouseIconEnabled = false
 
+
 -- Each controller is spawned independently so a WaitForChild in one
 -- can never block the others from starting.
 task.spawn(require, script.CrosshairController)

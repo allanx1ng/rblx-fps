@@ -46,9 +46,18 @@ local stamina = maxStamina()
 local isSprinting = false
 local timeSinceRelease = 0
 
-local gui = playerGui:WaitForChild("SprintStamina")
-local container = gui:WaitForChild("Container")
-local fill = container:WaitForChild("Fill")
+-- Mutable GUI references — refreshed on every respawn
+local gui
+local container
+local fill
+
+local function fetchGui()
+	gui = playerGui:WaitForChild("SprintStamina")
+	container = gui:WaitForChild("Container")
+	fill = container:WaitForChild("Fill")
+end
+
+fetchGui()
 
 local function setSprinting(value)
 	isSprinting = value
@@ -63,7 +72,11 @@ local function updateSpeed()
 	if not character then return end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		humanoid.WalkSpeed = if isSprinting and stamina > 0 then sprintSpeed() else walkSpeed()
+		local speed = if isSprinting and stamina > 0 then sprintSpeed() else walkSpeed()
+		if player:GetAttribute("IsADS") then
+			speed *= 0.5
+		end
+		humanoid.WalkSpeed = speed
 	end
 end
 
@@ -77,22 +90,35 @@ player.AttributeChanged:Connect(function(attr)
 	end
 end)
 
+-- Re-fetch GUI references and reset state after every respawn.
+player.CharacterAdded:Connect(function()
+	setSprinting(false)
+	stamina = maxStamina()
+	fetchGui()
+end)
+
 RunService.Heartbeat:Connect(function(dt)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local isAlive = humanoid ~= nil and humanoid.Health > 0
+
 	local max = maxStamina()
 
-	if isSprinting and stamina > 0 then
+	if isAlive and isSprinting and stamina > 0 then
 		stamina = math.max(0, stamina - staminaDrainRate() * dt)
-	elseif not isSprinting then
+	elseif not isSprinting or not isAlive then
 		timeSinceRelease += dt
 		if timeSinceRelease >= staminaRegenDelay() then
 			stamina = math.min(max, stamina + staminaRegenRate() * dt)
 		end
 	end
 
-	updateSpeed()
+	if isAlive then
+		updateSpeed()
+	end
 
 	fill.Size = UDim2.new(stamina / max, 0, 1, 0)
-	gui.Enabled = stamina < max
+	gui.Enabled = isAlive and stamina < max
 end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)

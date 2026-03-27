@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ViewModelController = require(script.Parent.ViewModelController)
 
@@ -142,15 +143,25 @@ function GunHandler:castRay(spreadDegrees)
 	local origin = camera.CFrame.Position
 	local range = self.config.range or RAYCAST_DISTANCE
 
+	local debugFolder = workspace:FindFirstChild("DebugMarkers")
+	if not debugFolder then
+		debugFolder = Instance.new("Folder")
+		debugFolder.Name = "DebugMarkers"
+		debugFolder.Parent = workspace
+	end
+
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { Players.LocalPlayer.Character }
+	params.FilterDescendantsInstances = { Players.LocalPlayer.Character, debugFolder }
 
 	local result = workspace:Raycast(origin, direction * range, params)
 	return result
 end
 
 function GunHandler:fire()
+	local character = Players.LocalPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return nil end
 	if self.isReloading then return nil end
 	if self.ammo <= 0 then
 		ViewModelController.onEmpty()
@@ -175,7 +186,14 @@ function GunHandler:fire()
 
 	local result = self:castRay(spread)
 	if result then
-		-- Debug: small yellow part at hit position, removed after 2s
+		local hitPart = result.Instance
+		-- If we hit a character part, ask the server to apply damage
+		if hitPart and hitPart:FindFirstAncestorOfClass("Model") then
+			ReplicatedStorage.Remotes.DealDamage:FireServer(hitPart)
+		end
+
+		-- Debug marker (parented to DebugMarkers folder so raycasts exclude it)
+		local debugFolder = workspace:FindFirstChild("DebugMarkers")
 		local marker = Instance.new("Part")
 		marker.Size = Vector3.new(0.15, 0.15, 0.15)
 		marker.Shape = Enum.PartType.Ball
@@ -185,7 +203,7 @@ function GunHandler:fire()
 		marker.CanCollide = false
 		marker.CastShadow = false
 		marker.Position = result.Position
-		marker.Parent = workspace
+		marker.Parent = debugFolder or workspace
 		game:GetService("Debris"):AddItem(marker, 2)
 	end
 
@@ -213,8 +231,14 @@ function GunHandler:reload()
 end
 
 function GunHandler:setADS(active)
+	if active then
+		local character = Players.LocalPlayer.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 then return end
+	end
 	if self.isADS == active then return end
 	self.isADS = active
+	Players.LocalPlayer:SetAttribute("IsADS", active)
 	ViewModelController.setADS(active)
 	local camera = workspace.CurrentCamera
 	local targetFOV = active
@@ -292,7 +316,9 @@ function GunHandler:endSession()
 	end
 
 	self.isFiring = false
-	self.spreadValue.Value = 0
+	if self.spreadValue.Parent then
+		self.spreadValue.Value = 0
+	end
 	ViewModelController.hide()
 end
 
@@ -312,6 +338,14 @@ function GunHandler:init()
 			self:fire()
 		end)
 	end
+
+	-- Unequipped may not fire when the character dies (tool destroyed with it).
+	-- CharacterRemoving guarantees endSession() is always called on death so that
+	-- session connections (RenderStepped, InputBegan, etc.) don't outlive the session.
+	-- Do NOT self-disconnect: it must fire on every death, not just the first.
+	Players.LocalPlayer.CharacterRemoving:Connect(function()
+		self:endSession()
+	end)
 end
 
 return GunHandler

@@ -15,12 +15,23 @@ local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local gunUI = playerGui:WaitForChild("GunUI")
 
-local gunNameLabel = gunUI:WaitForChild("GunName")
-local currentAmmoLabel = gunUI:WaitForChild("CurrentAmmo")
-local spareAmmoLabel = gunUI:WaitForChild("SpareAmmo")
-local reloadTextLabel = gunUI:WaitForChild("ReloadText")
+-- Mutable GUI references — refreshed on every respawn
+local gunUI
+local gunNameLabel
+local currentAmmoLabel
+local spareAmmoLabel
+local reloadTextLabel
+
+local function fetchGui()
+	gunUI = playerGui:WaitForChild("GunUI")
+	gunNameLabel = gunUI:WaitForChild("GunName")
+	currentAmmoLabel = gunUI:WaitForChild("CurrentAmmo")
+	spareAmmoLabel = gunUI:WaitForChild("SpareAmmo")
+	reloadTextLabel = gunUI:WaitForChild("ReloadText")
+end
+
+fetchGui()
 
 local activeConnections = {}
 
@@ -92,7 +103,12 @@ local function watchCharacter(character)
 	end
 end
 
-player.CharacterAdded:Connect(watchCharacter)
+-- Re-fetch GUI references after every respawn, then watch the new character.
+player.CharacterAdded:Connect(function(character)
+	fetchGui()
+	watchCharacter(character)
+end)
+
 if player.Character then
 	watchCharacter(player.Character)
 end

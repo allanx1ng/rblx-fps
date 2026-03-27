@@ -10,7 +10,8 @@ local computedAdsOffset = CFrame.new()
 local renderConnection  = nil
 local adsProgress    = 0
 local isADS          = false
-local recoilOffset   = CFrame.new()  -- current kick, lerps back to identity each frame
+local recoilOffset   = CFrame.new()
+local equipProgress  = 1  -- 0 = just equipped (arms down), 1 = fully raised
 
 -- Effect references, found after cloning
 local muzzleEmitter  = nil
@@ -32,6 +33,7 @@ local function destroyActive()
 	rootPart        = nil
 	computedAdsOffset = CFrame.new()
 	adsProgress     = 0
+	equipProgress   = 0
 	recoilOffset    = CFrame.new()
 	muzzleEmitter   = nil
 	muzzleLight     = nil
@@ -77,12 +79,15 @@ function ViewModelController.show(config)
 	local muzzlePoint = activeModel:FindFirstChild("MuzzlePoint", true)
 	if muzzlePoint then
 		muzzleEmitter = muzzlePoint:FindFirstChildOfClass("ParticleEmitter")
-		muzzleLight   = muzzlePoint:FindFirstChildOfClass("PointLight")
+		muzzleLight   = muzzlePoint:FindFirstChildOfClass("SpotLight")
 		if muzzleLight then muzzleLight.Enabled = false end
 	end
 	fireSound   = activeModel:FindFirstChild("FireSound")
 	reloadSound = activeModel:FindFirstChild("ReloadSound")
 	emptySound  = activeModel:FindFirstChild("EmptySound")
+
+	local equipSound = activeModel:FindFirstChild("EquipSound")
+	if equipSound then equipSound:Play() end
 
 	renderConnection = RunService.RenderStepped:Connect(function(dt)
 		-- Self-heal: if the model was destroyed for any reason, re-create it next frame
@@ -96,16 +101,20 @@ function ViewModelController.show(config)
 			return
 		end
 
+		-- Equip raise animation
+		equipProgress = math.clamp(equipProgress + dt / activeConfig.equipTime, 0, 1)
+		local equipLerp = activeConfig.equipOffset:Lerp(CFrame.new(), equipProgress)
+
 		-- ADS lerp
 		local target = isADS and 1 or 0
 		local step   = dt / activeConfig.adsSpeed
 		adsProgress  = math.clamp(adsProgress + math.sign(target - adsProgress) * step, 0, 1)
 
-		-- Recoil recovery — lerp back to identity each frame
+		-- Recoil recovery
 		recoilOffset = recoilOffset:Lerp(CFrame.new(), dt * activeConfig.recoilRecovery)
 
 		local baseOffset = activeConfig.hipOffset:Lerp(computedAdsOffset, adsProgress)
-		rootPart.CFrame  = workspace.CurrentCamera.CFrame * baseOffset * recoilOffset
+		rootPart.CFrame  = workspace.CurrentCamera.CFrame * baseOffset * recoilOffset * equipLerp
 	end)
 end
 

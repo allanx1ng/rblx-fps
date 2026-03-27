@@ -15,21 +15,25 @@ local PIXELS_PER_DEGREE = 5
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local crosshairGui = playerGui:WaitForChild("Crosshair")
 
-local arms = {
-	top    = crosshairGui:WaitForChild("Top"),
-	bottom = crosshairGui:WaitForChild("Bottom"),
-	left   = crosshairGui:WaitForChild("Left"),
-	right  = crosshairGui:WaitForChild("Right"),
-}
+-- Mutable GUI references — refreshed on every respawn
+local crosshairGui
+local arms = {}
+local basePos = {}
 
-local basePos = {
-	top    = arms.top.Position,
-	bottom = arms.bottom.Position,
-	left   = arms.left.Position,
-	right  = arms.right.Position,
-}
+local function fetchGui()
+	crosshairGui = playerGui:WaitForChild("Crosshair")
+	arms.top    = crosshairGui:WaitForChild("Top")
+	arms.bottom = crosshairGui:WaitForChild("Bottom")
+	arms.left   = crosshairGui:WaitForChild("Left")
+	arms.right  = crosshairGui:WaitForChild("Right")
+	basePos.top    = arms.top.Position
+	basePos.bottom = arms.bottom.Position
+	basePos.left   = arms.left.Position
+	basePos.right  = arms.right.Position
+end
+
+fetchGui()
 
 local function setArmPositions(extraOffset)
 	arms.top.Position    = basePos.top    + UDim2.new(0, 0,           0, -extraOffset)
@@ -42,6 +46,9 @@ local function getSpread()
 	local character = player.Character
 	if not character then return 0 end
 
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return 0 end
+
 	local tool = character:FindFirstChildOfClass("Tool")
 	if not tool then return 0 end
 
@@ -50,6 +57,12 @@ local function getSpread()
 
 	return spreadValue.Value
 end
+
+-- Re-fetch GUI references after every respawn (ScreenGuis with ResetOnSpawn=true
+-- are destroyed and recreated, so stale references stop working).
+player.CharacterAdded:Connect(function()
+	fetchGui()
+end)
 
 RunService.RenderStepped:Connect(function()
 	local extraOffset = 2 * getSpread() * PIXELS_PER_DEGREE
