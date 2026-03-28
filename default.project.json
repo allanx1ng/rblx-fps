@@ -41,6 +41,11 @@
         "$className": "Tool",
         "$properties": { "RequiresHandle": false },
         "GunScript": { "$path": "src/tools/TestGun2/GunScript.client.luau" }
+      },
+      "TestGun3": {
+        "$className": "Tool",
+        "$properties": { "RequiresHandle": false },
+        "GunScript": { "$path": "src/tools/TestGun3/GunScript.client.luau" }
       }
     },
 

@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
 local PIXELS_PER_DEGREE = 5
+local DEFAULT_FOV = 70  -- FOV that PIXELS_PER_DEGREE is calibrated for
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -65,7 +66,9 @@ player.CharacterAdded:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function()
-	local extraOffset = 2 * getSpread() * PIXELS_PER_DEGREE
+	local fov = workspace.CurrentCamera.FieldOfView
+	local fovScale = math.tan(math.rad(DEFAULT_FOV / 2)) / math.tan(math.rad(fov / 2))
+	local extraOffset = getSpread() * PIXELS_PER_DEGREE * fovScale
 	setArmPositions(extraOffset)
 end)
 
