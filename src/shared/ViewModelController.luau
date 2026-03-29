@@ -17,7 +17,7 @@ local equipProgress  = 1  -- 0 = just equipped (arms down), 1 = fully raised
 local muzzlePoint       = nil
 local muzzleWorldPos    = nil  -- cached each RenderStepped to avoid physics-frame drift
 local muzzleEmitter  = nil
-local muzzleLight    = nil
+local muzzleLights    = nil
 local fireSound      = nil
 local reloadSound    = nil
 local emptySound     = nil
