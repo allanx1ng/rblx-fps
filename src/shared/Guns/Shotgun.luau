@@ -1,0 +1,34 @@
+return {
+	name = "Shotgun",
+	pelletsPerShot = 10,
+	capacity = 6,
+	damage = 15,
+	range = 80,
+	fireRate = 0.4,
+
+	baseSpread = 4,
+	rapidFireSpread = 2,
+	movementSpread = 2,
+	spreadDecayRate = 8.0,
+	maxSpread = 8.0,
+
+	adsSpeed = 0.2,
+	adsMagnification = 1.1,
+	adsSpreadMultiplier = 0.8,
+
+	reloadTime = 2.5,
+	spareAmmo = 36,
+
+	recoilKick     = 0.15,
+	recoilRotation = 6,
+	recoilRecovery = 8,
+
+	viewModelName = "Shotgun",
+	hipOffset = CFrame.new(0.5, -0.4, -1.0),
+	adsDistance = 0.8,
+	equipTime   = 0.4,
+	equipOffset = CFrame.new(0.2, -0.6, 0.3),
+
+	headshotMultiplier = 1.5,
+	limbMultiplier     = 0.75,
+}

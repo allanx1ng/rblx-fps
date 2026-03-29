@@ -76,6 +76,13 @@ function GunHandler.new(tool, config)
 	return self
 end
 
+-- Lerp the ADS spread multiplier based on how far through the ADS transition we are
+local function adsSpreadMult(config)
+	local progress = ViewModelController.getAdsProgress()
+	-- 1.0 at hip → adsSpreadMultiplier at full ADS
+	return 1 + (config.adsSpreadMultiplier - 1) * progress
+end
+
 -- Read-only spread for display — does NOT decay accumulatedSpread
 function GunHandler:peekSpread()
 	local dt = tick() - self.lastFireTime
@@ -90,9 +97,7 @@ function GunHandler:peekSpread()
 		end
 	end
 
-	if self.isADS then
-		spread *= self.config.adsSpreadMultiplier
-	end
+	spread *= adsSpreadMult(self.config)
 
 	return spread
 end
@@ -114,9 +119,7 @@ function GunHandler:getSpread()
 		end
 	end
 
-	if self.isADS then
-		spread *= self.config.adsSpreadMultiplier
-	end
+	spread *= adsSpreadMult(self.config)
 
 	return spread
 end
@@ -243,27 +246,31 @@ function GunHandler:fire()
 		-- Server spawns the authoritative projectile (visible to others, handles damage)
 		ReplicatedStorage.Remotes.FireProjectile:FireServer(cameraOrigin, direction, self.config.name)
 	else
-		local result = self:castRay(spread)
-		if result then
-			local hitPart = result.Instance
-			-- If we hit a character part, ask the server to apply damage
-			if hitPart and hitPart:FindFirstAncestorOfClass("Model") then
-				ReplicatedStorage.Remotes.DealDamage:FireServer(hitPart)
-			end
+		local pellets = self.config.pelletsPerShot or 1
+		local debugFolder = workspace:FindFirstChild("DebugMarkers")
 
-			-- Debug marker (parented to DebugMarkers folder so raycasts exclude it)
-			local debugFolder = workspace:FindFirstChild("DebugMarkers")
-			local marker = Instance.new("Part")
-			marker.Size = Vector3.new(0.15, 0.15, 0.15)
-			marker.Shape = Enum.PartType.Ball
-			marker.Material = Enum.Material.Neon
-			marker.Color = Color3.fromRGB(255, 200, 0)
-			marker.Anchored = true
-			marker.CanCollide = false
-			marker.CastShadow = false
-			marker.Position = result.Position
-			marker.Parent = debugFolder or workspace
-			game:GetService("Debris"):AddItem(marker, 2)
+		for _ = 1, pellets do
+			local result = self:castRay(spread)
+			if result then
+				local hitPart = result.Instance
+				-- If we hit a character part, ask the server to apply damage
+				if hitPart and hitPart:FindFirstAncestorOfClass("Model") then
+					ReplicatedStorage.Remotes.DealDamage:FireServer(hitPart)
+				end
+
+				-- Debug marker (parented to DebugMarkers folder so raycasts exclude it)
+				local marker = Instance.new("Part")
+				marker.Size = Vector3.new(0.15, 0.15, 0.15)
+				marker.Shape = Enum.PartType.Ball
+				marker.Material = Enum.Material.Neon
+				marker.Color = Color3.fromRGB(255, 200, 0)
+				marker.Anchored = true
+				marker.CanCollide = false
+				marker.CastShadow = false
+				marker.Position = result.Position
+				marker.Parent = debugFolder or workspace
+				game:GetService("Debris"):AddItem(marker, 2)
+			end
 		end
 	end
 

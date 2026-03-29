@@ -40,7 +40,7 @@ local function destroyActive()
 	muzzlePoint     = nil
 	muzzleWorldPos  = nil
 	muzzleEmitter   = nil
-	muzzleLight     = nil
+	muzzleLights    = nil
 	fireSound       = nil
 	reloadSound     = nil
 	emptySound      = nil
@@ -84,9 +84,19 @@ function ViewModelController.show(config)
 	muzzlePoint = activeModel:FindFirstChild("MuzzlePoint", true)
 	if muzzlePoint then
 		muzzleEmitter = muzzlePoint:FindFirstChildOfClass("ParticleEmitter")
-		muzzleLight   = muzzlePoint:FindFirstChildOfClass("PointLight")
-			or muzzlePoint:FindFirstChildOfClass("SpotLight")
-		if muzzleLight then muzzleLight.Enabled = false end
+
+		muzzleLights = {}
+
+		for _, obj in ipairs(muzzlePoint:GetDescendants()) do
+			if obj:IsA("PointLight") or obj:IsA("SpotLight") then
+				table.insert(muzzleLights, obj)
+			end
+		end
+
+		-- disable all lights
+		for _, light in ipairs(muzzleLights) do
+			light.Enabled = false
+		end
 	else
 		warn("ViewModelController:", config.viewModelName, "has no MuzzlePoint — muzzle flash and projectile spawn will use fallback")
 	end
@@ -143,10 +153,17 @@ function ViewModelController.onFire()
 		muzzleEmitter:Emit(6)
 	end
 
-	if muzzleLight then
-		muzzleLight.Enabled = true
+	if #muzzleLights > 0 then
+		for _, light in ipairs(muzzleLights) do
+			light.Enabled = true
+		end
+
 		task.delay(0.05, function()
-			if muzzleLight then muzzleLight.Enabled = false end
+			for _, light in ipairs(muzzleLights) do
+				if light then
+					light.Enabled = false
+				end
+			end
 		end)
 	end
 
@@ -171,6 +188,10 @@ end
 
 function ViewModelController.getMuzzlePosition()
 	return muzzleWorldPos
+end
+
+function ViewModelController.getAdsProgress()
+	return adsProgress
 end
 
 function ViewModelController.setADS(active)

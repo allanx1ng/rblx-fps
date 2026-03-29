@@ -53,6 +53,11 @@
         "$className": "Tool",
         "$properties": { "RequiresHandle": false },
         "GunScript": { "$path": "src/tools/HyperlaserGun/GunScript.client.luau" }
+      },
+      "Shotgun": {
+        "$className": "Tool",
+        "$properties": { "RequiresHandle": false },
+        "GunScript": { "$path": "src/tools/Shotgun/GunScript.client.luau" }
       }
     },
 
