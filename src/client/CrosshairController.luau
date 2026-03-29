@@ -11,8 +11,7 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
-local PIXELS_PER_DEGREE = 5
-local DEFAULT_FOV = 70  -- FOV that PIXELS_PER_DEGREE is calibrated for
+local ARM_HALF_THICKNESS = -4  -- half the pixel thickness of each arm Frame in your crosshair GUI
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -66,9 +65,13 @@ player.CharacterAdded:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function()
-	local fov = workspace.CurrentCamera.FieldOfView
-	local fovScale = math.tan(math.rad(DEFAULT_FOV / 2)) / math.tan(math.rad(fov / 2))
-	local extraOffset = getSpread() * PIXELS_PER_DEGREE * fovScale
+	local camera = workspace.CurrentCamera
+	local fov = camera.FieldOfView
+	local halfHeight = camera.ViewportSize.Y / 2
+	local spread = getSpread()
+	local extraOffset = math.max(0,
+		math.tan(math.rad(spread)) * halfHeight / math.tan(math.rad(fov / 2)) + ARM_HALF_THICKNESS
+	)
 	setArmPositions(extraOffset)
 end)
 

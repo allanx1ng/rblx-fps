@@ -152,9 +152,12 @@ function GunHandler:castRay(spreadDegrees)
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { Players.LocalPlayer.Character, debugFolder }
+	params.FilterDescendantsInstances = { Players.LocalPlayer.Character, debugFolder, workspace.CurrentCamera }
 
 	local result = workspace:Raycast(origin, direction * range, params)
+	if result and (result.Position - origin).Magnitude < 1 then
+		return nil
+	end
 	return result
 end
 
@@ -184,27 +187,84 @@ function GunHandler:fire()
 
 	ViewModelController.onFire()
 
-	local result = self:castRay(spread)
-	if result then
-		local hitPart = result.Instance
-		-- If we hit a character part, ask the server to apply damage
-		if hitPart and hitPart:FindFirstAncestorOfClass("Model") then
-			ReplicatedStorage.Remotes.DealDamage:FireServer(hitPart)
+	if self.config.firingMode == "projectile" then
+		local camera = workspace.CurrentCamera
+		local spreadRad = math.rad(spread)
+		local angle = math.random() * math.pi * 2
+		local offset = math.tan(spreadRad) * math.random()
+		local direction = (camera.CFrame * CFrame.Angles(
+			offset * math.cos(angle),
+			offset * math.sin(angle),
+			0
+		)).LookVector
+		local cameraOrigin = camera.CFrame.Position
+
+		local speed = self.config.projectileSpeed or 160
+		local size  = self.config.projectileSize  or Vector3.new(0.2, 0.2, 3)
+		local color = self.config.projectileColor or Color3.fromRGB(0, 255, 255)
+
+		-- ADS: spawn from camera so visual and server projectiles align.
+		-- Hip: spawn from muzzle for a natural look.
+		local spawnPos = self.isADS and cameraOrigin
+			or ViewModelController.getMuzzlePosition() or cameraOrigin
+
+		-- Local-only visual: cosmetic only, never replicates to server.
+		-- BodyVelocity added BEFORE parenting to avoid one-frame stationary stutter.
+		local localProjectile = Instance.new("Part")
+		localProjectile.Size = size
+		localProjectile.Color = color
+		localProjectile.Material = Enum.Material.Neon
+		localProjectile.CanCollide = false
+		localProjectile.CastShadow = false
+		if self.isADS and cameraOrigin then
+			localProjectile.CFrame = CFrame.new(spawnPos, spawnPos + direction)
+				* CFrame.new(0, -0.1, -size.Z*2)
+		else
+			localProjectile.CFrame = CFrame.new(spawnPos, spawnPos + direction)
+				* CFrame.new(-0.5, 0.5, -size.Z / 2)
 		end
 
-		-- Debug marker (parented to DebugMarkers folder so raycasts exclude it)
-		local debugFolder = workspace:FindFirstChild("DebugMarkers")
-		local marker = Instance.new("Part")
-		marker.Size = Vector3.new(0.15, 0.15, 0.15)
-		marker.Shape = Enum.PartType.Ball
-		marker.Material = Enum.Material.Neon
-		marker.Color = Color3.fromRGB(255, 200, 0)
-		marker.Anchored = true
-		marker.CanCollide = false
-		marker.CastShadow = false
-		marker.Position = result.Position
-		marker.Parent = debugFolder or workspace
-		game:GetService("Debris"):AddItem(marker, 2)
+		local bv = Instance.new("BodyVelocity")
+		bv.Velocity = direction * speed
+		bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		bv.Parent = localProjectile
+
+		if self.config.projectileLight then
+			local light = Instance.new("PointLight")
+			light.Color = color
+			light.Brightness = self.config.projectileLightBrightness or 5
+			light.Range = self.config.projectileLightRange or 16
+			light.Parent = localProjectile
+		end
+
+		localProjectile.Parent = workspace  -- parent last so physics starts with velocity already set
+		game:GetService("Debris"):AddItem(localProjectile, (self.config.range or 500) / speed)
+
+		-- Server spawns the authoritative projectile (visible to others, handles damage)
+		ReplicatedStorage.Remotes.FireProjectile:FireServer(cameraOrigin, direction, self.config.name)
+	else
+		local result = self:castRay(spread)
+		if result then
+			local hitPart = result.Instance
+			-- If we hit a character part, ask the server to apply damage
+			if hitPart and hitPart:FindFirstAncestorOfClass("Model") then
+				ReplicatedStorage.Remotes.DealDamage:FireServer(hitPart)
+			end
+
+			-- Debug marker (parented to DebugMarkers folder so raycasts exclude it)
+			local debugFolder = workspace:FindFirstChild("DebugMarkers")
+			local marker = Instance.new("Part")
+			marker.Size = Vector3.new(0.15, 0.15, 0.15)
+			marker.Shape = Enum.PartType.Ball
+			marker.Material = Enum.Material.Neon
+			marker.Color = Color3.fromRGB(255, 200, 0)
+			marker.Anchored = true
+			marker.CanCollide = false
+			marker.CastShadow = false
+			marker.Position = result.Position
+			marker.Parent = debugFolder or workspace
+			game:GetService("Debris"):AddItem(marker, 2)
+		end
 	end
 
 	return spread
@@ -260,6 +320,7 @@ end
 -- Wired on equip, torn down on unequip so they reconnect cleanly each time
 function GunHandler:startSession()
 	ViewModelController.show(self.config)
+
 	table.insert(self.sessionConnections, RunService.RenderStepped:Connect(function()
 		self.spreadValue.Value = self:peekSpread()
 	end))

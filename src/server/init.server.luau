@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Debris = game:GetService("Debris")
 -- local DataStoreService = game:GetService("DataStoreService")
 -- local MarketplaceService = game:GetService("MarketplaceService")
 
@@ -25,6 +26,59 @@ local function getMultiplier(partName, config)
 		return config.limbMultiplier or 1  -- arms, legs
 	end
 end
+
+ReplicatedStorage.Remotes.FireProjectile.OnServerEvent:Connect(function(shooter, origin, direction, gunName)
+	local shooterCharacter = shooter.Character
+	if not shooterCharacter then return end
+	local shooterHRP = shooterCharacter:FindFirstChild("HumanoidRootPart")
+	if not shooterHRP then return end
+	if (origin - shooterHRP.Position).Magnitude > 20 then return end
+
+	local configModule = Guns:FindFirstChild(gunName)
+	if not configModule then return end
+	local config = require(configModule)
+	if config.firingMode ~= "projectile" then return end
+
+	local speed = config.projectileSpeed or 160
+	local size  = config.projectileSize  or Vector3.new(0.2, 0.2, 3)
+	local color = config.projectileColor or Color3.fromRGB(0, 255, 255)
+
+	-- Server Part is an invisible hitbox only — visuals are handled client-side
+	local projectile = Instance.new("Part")
+	projectile.Name = "Projectile"
+	projectile.Size = size
+	projectile.Transparency = 1
+	projectile.CanCollide = false
+	projectile.CastShadow = false
+	projectile.CFrame = CFrame.new(origin, origin + direction)
+		* CFrame.new(0, 0, -size.Z / 2)
+
+	local bv = Instance.new("BodyVelocity")
+	bv.Velocity = direction * speed
+	bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	bv.Parent = projectile
+
+	projectile.Parent = workspace
+	Debris:AddItem(projectile, (config.range or 500) / speed)
+
+	local hasHit = false
+	projectile.Touched:Connect(function(otherPart)
+		if hasHit then return end
+		if not otherPart or not otherPart.Parent then return end
+		if otherPart:IsDescendantOf(shooterCharacter) then return end
+
+		local victimCharacter = otherPart:FindFirstAncestorOfClass("Model")
+		local humanoid = victimCharacter and victimCharacter:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 then return end
+
+		local victim = Players:GetPlayerFromCharacter(victimCharacter)
+		if victim == shooter then return end
+
+		hasHit = true
+		projectile:Destroy()
+		humanoid:TakeDamage(config.damage * getMultiplier(otherPart.Name, config))
+	end)
+end)
 
 ReplicatedStorage.Remotes.DealDamage.OnServerEvent:Connect(function(shooter, hitPart)
 	-- Basic sanity checks on the incoming data

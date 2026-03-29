@@ -9,7 +9,9 @@
       },
       "Remotes": {
         "$className": "Folder",
-        "DealDamage": { "$className": "RemoteEvent" }
+        "DealDamage": { "$className": "RemoteEvent" },
+        "FireProjectile": { "$className": "RemoteEvent" },
+        "ProjectileSpawned": { "$className": "RemoteEvent" }
       }
     },
 
@@ -46,6 +48,11 @@
         "$className": "Tool",
         "$properties": { "RequiresHandle": false },
         "GunScript": { "$path": "src/tools/TestGun3/GunScript.client.luau" }
+      },
+      "HyperlaserGun": {
+        "$className": "Tool",
+        "$properties": { "RequiresHandle": false },
+        "GunScript": { "$path": "src/tools/HyperlaserGun/GunScript.client.luau" }
       }
     },
 

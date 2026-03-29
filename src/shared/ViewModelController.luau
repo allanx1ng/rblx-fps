@@ -14,6 +14,8 @@ local recoilOffset   = CFrame.new()
 local equipProgress  = 1  -- 0 = just equipped (arms down), 1 = fully raised
 
 -- Effect references, found after cloning
+local muzzlePoint       = nil
+local muzzleWorldPos    = nil  -- cached each RenderStepped to avoid physics-frame drift
 local muzzleEmitter  = nil
 local muzzleLight    = nil
 local fireSound      = nil
@@ -35,6 +37,8 @@ local function destroyActive()
 	adsProgress     = 0
 	equipProgress   = 0
 	recoilOffset    = CFrame.new()
+	muzzlePoint     = nil
+	muzzleWorldPos  = nil
 	muzzleEmitter   = nil
 	muzzleLight     = nil
 	fireSound       = nil
@@ -70,17 +74,21 @@ function ViewModelController.show(config)
 		warn("ViewModelController: model", config.viewModelName, "has no RootPart")
 		return
 	end
+	rootPart.Anchored = true  -- prevent physics from displacing the viewmodel between RenderStepped calls
 
 	-- Auto-compute ADS offset from SightPoint position
 	local sightLocal    = getSightLocalPos(rootPart)
 	computedAdsOffset   = CFrame.new(-sightLocal.X, -sightLocal.Y, -config.adsDistance)
 
 	-- Cache effect references (all optional — missing ones are silently skipped)
-	local muzzlePoint = activeModel:FindFirstChild("MuzzlePoint", true)
+	muzzlePoint = activeModel:FindFirstChild("MuzzlePoint", true)
 	if muzzlePoint then
 		muzzleEmitter = muzzlePoint:FindFirstChildOfClass("ParticleEmitter")
-		muzzleLight   = muzzlePoint:FindFirstChildOfClass("SpotLight")
+		muzzleLight   = muzzlePoint:FindFirstChildOfClass("PointLight")
+			or muzzlePoint:FindFirstChildOfClass("SpotLight")
 		if muzzleLight then muzzleLight.Enabled = false end
+	else
+		warn("ViewModelController:", config.viewModelName, "has no MuzzlePoint — muzzle flash and projectile spawn will use fallback")
 	end
 	fireSound   = activeModel:FindFirstChild("FireSound")
 	reloadSound = activeModel:FindFirstChild("ReloadSound")
@@ -115,6 +123,10 @@ function ViewModelController.show(config)
 
 		local baseOffset = activeConfig.hipOffset:Lerp(computedAdsOffset, adsProgress)
 		rootPart.CFrame  = workspace.CurrentCamera.CFrame * baseOffset * recoilOffset * equipLerp
+
+		if muzzlePoint then
+			muzzleWorldPos = muzzlePoint:IsA("Attachment") and muzzlePoint.WorldPosition or muzzlePoint.Position
+		end
 	end)
 end
 
@@ -155,6 +167,10 @@ function ViewModelController.onEmpty()
 	if emptySound then
 		emptySound:Play()
 	end
+end
+
+function ViewModelController.getMuzzlePosition()
+	return muzzleWorldPos
 end
 
 function ViewModelController.setADS(active)
