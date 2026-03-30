@@ -1,7 +1,7 @@
 return {
 	-- Health
 	maxHealth       = 100,
-	healthRegenRate = 5,    -- HP per second
+	healthRegenRate = 1,    -- HP per second
 	healthRegenDelay = 6,   -- seconds after taking damage before regen starts
 
 	-- Stamina

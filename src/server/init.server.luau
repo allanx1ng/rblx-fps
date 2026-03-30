@@ -43,15 +43,25 @@ ReplicatedStorage.Remotes.FireProjectile.OnServerEvent:Connect(function(shooter,
 	local size  = config.projectileSize  or Vector3.new(0.2, 0.2, 3)
 	local color = config.projectileColor or Color3.fromRGB(0, 255, 255)
 
-	-- Server Part is an invisible hitbox only — visuals are handled client-side
 	local projectile = Instance.new("Part")
 	projectile.Name = "Projectile"
 	projectile.Size = size
-	projectile.Transparency = 1
+	projectile.Color = color
+	projectile.Material = Enum.Material.Neon
+	projectile.Transparency = 0
 	projectile.CanCollide = false
 	projectile.CastShadow = false
+	projectile:SetAttribute("ShooterUserId", shooter.UserId)
 	projectile.CFrame = CFrame.new(origin, origin + direction)
 		* CFrame.new(0, 0, -size.Z / 2)
+
+	if config.projectileLight then
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Brightness = config.projectileLightBrightness or 1
+		light.Range = config.projectileLightRange or 16
+		light.Parent = projectile
+	end
 
 	local bv = Instance.new("BodyVelocity")
 	bv.Velocity = direction * speed
@@ -192,15 +202,53 @@ end)
 -- end
 
 -- ---------------------------------------------------------------------------
+-- Custom health regen — replaces the default Roblox "Health" script
+-- ---------------------------------------------------------------------------
+local function startHealthRegen(character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	-- Remove the default Roblox health regen script
+	local defaultHealthScript = character:FindFirstChild("Health")
+	if defaultHealthScript then
+		defaultHealthScript:Destroy()
+	end
+
+	task.spawn(function()
+		local lastDamageTime = 0
+
+		local conn = humanoid.HealthChanged:Connect(function(newHealth)
+			-- Health went down → record damage time
+			if newHealth < humanoid.MaxHealth then
+				lastDamageTime = tick()
+			end
+		end)
+
+		while humanoid and humanoid.Parent and humanoid.Health > 0 do
+			task.wait(1)
+			if tick() - lastDamageTime >= PlayerStats.healthRegenDelay then
+				if humanoid and humanoid.Parent and humanoid.Health > 0 then
+					humanoid.Health = math.min(humanoid.Health + PlayerStats.healthRegenRate, humanoid.MaxHealth)
+				end
+			end
+		end
+
+		conn:Disconnect()
+	end)
+end
+
+-- ---------------------------------------------------------------------------
 -- Player setup — runs on every join
 -- ---------------------------------------------------------------------------
 local function onPlayerAdded(player)
-	-- Uncomment below once DataStore and gamepass checks are ready.
-	-- Until then, SprintController initialises attributes from defaults client-side.
+	player.CharacterAdded:Connect(function(character)
+		startHealthRegen(character)
+	end)
 
-	-- local savedBonuses  = loadBonuses(player)
-	-- local passBonuses   = getGamepassBonuses(player)
-	-- applyStats(player, savedBonuses, passBonuses)
+	-- Handle already-spawned character (e.g. if PlayerAdded fires late)
+	if player.Character then
+		startHealthRegen(player.Character)
+	end
 end
 
 -- ---------------------------------------------------------------------------
