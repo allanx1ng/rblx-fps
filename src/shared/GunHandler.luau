@@ -330,6 +330,8 @@ function GunHandler:startSession()
 
 	table.insert(self.sessionConnections, RunService.RenderStepped:Connect(function()
 		self.spreadValue.Value = self:peekSpread()
+		-- Scale mouse sensitivity with FOV so high-magnification scopes feel natural
+		UserInputService.MouseDeltaSensitivity = workspace.CurrentCamera.FieldOfView / DEFAULT_FOV
 	end))
 
 	table.insert(self.sessionConnections, UserInputService.InputBegan:Connect(function(input, processed)
@@ -387,6 +389,7 @@ function GunHandler:endSession()
 	if self.spreadValue.Parent then
 		self.spreadValue.Value = 0
 	end
+	UserInputService.MouseDeltaSensitivity = 1
 	ViewModelController.hide()
 end
 
