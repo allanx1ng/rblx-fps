@@ -6,6 +6,7 @@ local Debris = game:GetService("Debris")
 
 local PlayerStats = require(ReplicatedStorage.Shared.PlayerStats)
 local Guns = ReplicatedStorage.Shared.Guns
+local ActiveItems = ReplicatedStorage.Shared.Items.Actives
 
 -- ---------------------------------------------------------------------------
 -- Damage multipliers by body part name (works for both R6 and R15)
@@ -125,6 +126,44 @@ ReplicatedStorage.Remotes.DealDamage.OnServerEvent:Connect(function(shooter, hit
 
 	local damage = config.damage * getMultiplier(hitPart.Name, config)
 	humanoid:TakeDamage(damage)
+end)
+
+-- ---------------------------------------------------------------------------
+-- Healing Potion — server-authoritative healing with cooldown enforcement
+-- ---------------------------------------------------------------------------
+local healingCooldowns = {} -- [player] = lastUseTime per potion name
+
+ReplicatedStorage.Remotes.UseHealingPotion.OnServerEvent:Connect(function(player, potionName)
+	local character = player.Character
+	if not character then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return end
+
+	local configModule = ActiveItems:FindFirstChild(potionName)
+	if not configModule then return end
+	local config = require(configModule)
+
+	-- Enforce server-side cooldown
+	local key = player.UserId .. "_" .. potionName
+	local lastUse = healingCooldowns[key] or 0
+	if tick() - lastUse < config.cooldown then return end
+	healingCooldowns[key] = tick()
+
+	-- Apply healing
+	if config.healToFull then
+		humanoid.Health = humanoid.MaxHealth
+	else
+		humanoid.Health = math.min(humanoid.Health + (config.healAmount or 0), humanoid.MaxHealth)
+	end
+end)
+
+-- Clean up cooldown entries when a player leaves
+Players.PlayerRemoving:Connect(function(player)
+	for key in healingCooldowns do
+		if string.find(key, tostring(player.UserId) .. "_") == 1 then
+			healingCooldowns[key] = nil
+		end
+	end
 end)
 
 -- ---------------------------------------------------------------------------

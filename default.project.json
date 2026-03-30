@@ -11,7 +11,8 @@
         "$className": "Folder",
         "DealDamage": { "$className": "RemoteEvent" },
         "FireProjectile": { "$className": "RemoteEvent" },
-        "ProjectileSpawned": { "$className": "RemoteEvent" }
+        "ProjectileSpawned": { "$className": "RemoteEvent" },
+        "UseHealingPotion": { "$className": "RemoteEvent" }
       }
     },
 
@@ -58,6 +59,11 @@
         "$className": "Tool",
         "$properties": { "RequiresHandle": false },
         "GunScript": { "$path": "src/tools/Shotgun/GunScript.client.luau" }
+      },
+      "HealingPotion": {
+        "$className": "Tool",
+        "$properties": { "RequiresHandle": false },
+        "HealingPotionScript": { "$path": "src/tools/HealingPotion/HealingPotionScript.client.luau" }
       }
     },
 

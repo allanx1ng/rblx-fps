@@ -13,7 +13,7 @@ return {
 	maxSpread = 6.0,
 
 	adsSpeed = 0.18,
-	adsMagnification = 1.5,
+	adsMagnification = 1.3,
 	adsSpreadMultiplier = 0.3,
 
 	reloadTime = 2.2,
