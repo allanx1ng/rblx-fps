@@ -134,6 +134,7 @@ end)
 local healingCooldowns = {} -- [player] = lastUseTime per potion name
 
 ReplicatedStorage.Remotes.UseHealingPotion.OnServerEvent:Connect(function(player, potionName)
+	print('using health potion')
 	local character = player.Character
 	if not character then return end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")

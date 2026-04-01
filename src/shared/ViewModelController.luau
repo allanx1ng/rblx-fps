@@ -80,29 +80,31 @@ function ViewModelController.show(config)
 	local sightLocal    = getSightLocalPos(rootPart)
 	computedAdsOffset   = CFrame.new(-sightLocal.X, -sightLocal.Y, -config.adsDistance)
 
-	-- Cache effect references (all optional — missing ones are silently skipped)
-	muzzlePoint = activeModel:FindFirstChild("MuzzlePoint", true)
-	if muzzlePoint then
-		muzzleEmitter = muzzlePoint:FindFirstChildOfClass("ParticleEmitter")
+	-- Only cache gun-specific effects (muzzle flash, fire/reload sounds) for guns
+	if config.isGun ~= false then
+		muzzlePoint = activeModel:FindFirstChild("MuzzlePoint", true)
+		if muzzlePoint then
+			muzzleEmitter = muzzlePoint:FindFirstChildOfClass("ParticleEmitter")
 
-		muzzleLights = {}
+			muzzleLights = {}
 
-		for _, obj in ipairs(muzzlePoint:GetDescendants()) do
-			if obj:IsA("PointLight") or obj:IsA("SpotLight") then
-				table.insert(muzzleLights, obj)
+			for _, obj in ipairs(muzzlePoint:GetDescendants()) do
+				if obj:IsA("PointLight") or obj:IsA("SpotLight") then
+					table.insert(muzzleLights, obj)
+				end
 			end
-		end
 
-		-- disable all lights
-		for _, light in ipairs(muzzleLights) do
-			light.Enabled = false
+			-- disable all lights
+			for _, light in ipairs(muzzleLights) do
+				light.Enabled = false
+			end
+		else
+			warn("ViewModelController:", config.viewModelName, "has no MuzzlePoint — muzzle flash and projectile spawn will use fallback")
 		end
-	else
-		warn("ViewModelController:", config.viewModelName, "has no MuzzlePoint — muzzle flash and projectile spawn will use fallback")
+		fireSound   = activeModel:FindFirstChild("FireSound")
+		reloadSound = activeModel:FindFirstChild("ReloadSound")
+		emptySound  = activeModel:FindFirstChild("EmptySound")
 	end
-	fireSound   = activeModel:FindFirstChild("FireSound")
-	reloadSound = activeModel:FindFirstChild("ReloadSound")
-	emptySound  = activeModel:FindFirstChild("EmptySound")
 
 	local equipSound = activeModel:FindFirstChild("EquipSound")
 	if equipSound then equipSound:Play() end

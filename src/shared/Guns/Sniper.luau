@@ -9,8 +9,8 @@ return {
 	baseSpread = 3,
 	rapidFireSpread = 15,
 	movementSpread = 20.0,
-	spreadDecayRate = 6.0,
-	maxSpread = 30.0,
+	spreadDecayRate = 9.0,
+	maxSpread = 20.0,
 
 	adsSpeed = 0.7,
 	adsMagnification = 12,
@@ -21,7 +21,7 @@ return {
 
 	recoilKick     = 1.0,
 	recoilRotation = 4.5,
-	recoilRecovery = 2.5,
+	recoilRecovery = 3.5,
 
 	viewModelName = "Sniper",
 	hipOffset = CFrame.new(0.5, -0.4, -1.0),

@@ -65,6 +65,7 @@ end
 function HealingPotionHandler:startSession()
 	-- Show the healing potion viewmodel
 	ViewModelController.show({
+		isGun = false,
 		viewModelName = self.config.viewModelName,
 		hipOffset = self.config.hipOffset,
 		adsDistance = self.config.adsDistance or 0,
