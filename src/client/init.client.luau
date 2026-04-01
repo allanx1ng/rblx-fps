@@ -1,13 +1,18 @@
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
 -- Lock camera to first person
-player.CameraMode = Enum.CameraMode.LockFirstPerson
+-- player.CameraMode = Enum.CameraMode.LockFirstPerson
 
 -- Hide default cursor; the Crosshair ScreenGui takes over
 UserInputService.MouseIconEnabled = false
+
+-- Disable default Roblox UI
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
 
 
 -- Each controller is spawned independently so a WaitForChild in one

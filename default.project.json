@@ -77,6 +77,17 @@
       }
     },
 
+    "StarterGui": {
+      "LobbyUI": {
+        "$className": "ScreenGui",
+        "HUD": {
+          "$className": "ScreenGui",
+          "HUDController": { "$path": "src/gui/HUDController.client.luau" }
+        },
+        "OpenShop": { "$path": "src/gui/OpenShop.client.luau" }
+      }
+    },
+
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {

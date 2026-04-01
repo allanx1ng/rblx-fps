@@ -1,0 +1,170 @@
+-- Drives the persistent lobby HUD.
+--
+-- Lives at: StarterGui > LobbyUI > HUD > HUDController (LocalScript)
+--
+-- HUD elements are optional — missing ones are silently skipped.
+-- Panel toggling works regardless of which HUD elements exist.
+--
+-- Panel toggling from other scripts:
+--   lobbyUI:WaitForChild("TogglePanel"):Fire("shop")
+--   lobbyUI:WaitForChild("TogglePanel"):Fire("settings")
+--   lobbyUI:WaitForChild("TogglePanel"):Fire("loadout")
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local hud = script.Parent
+local lobbyUI = hud.Parent
+local main = lobbyUI:FindFirstChild("Main")
+
+-- ---------------------------------------------------------------------------
+-- Panel toggle state — only one panel open at a time
+-- ---------------------------------------------------------------------------
+local activePanel = nil  -- "shop" | "settings" | "loadout" | nil
+
+local panels = {
+	shop     = main and main:FindFirstChild("ShopPanel"),
+	settings = main and main:FindFirstChild("SettingsPanel"),
+	loadout  = main and main:FindFirstChild("LoadoutPanel"),
+}
+
+local function restoreCamera()
+	if player:GetAttribute("InGame") then
+		player.CameraMode = Enum.CameraMode.LockFirstPerson
+		UserInputService.MouseIconEnabled = false
+	else
+		-- Lobby: third person, cursor visible
+		player.CameraMode = Enum.CameraMode.Classic
+		UserInputService.MouseIconEnabled = true
+	end
+end
+
+local function togglePanel(panelName)
+	if not panels[panelName] then return end
+
+	if activePanel == panelName then
+		panels[panelName].Visible = false
+		activePanel = nil
+		restoreCamera()
+	else
+		if activePanel and panels[activePanel] then
+			panels[activePanel].Visible = false
+		end
+		panels[panelName].Visible = true
+		activePanel = panelName
+		UserInputService.MouseIconEnabled = true
+		player.CameraMode = Enum.CameraMode.Classic
+	end
+	lobbyUI:SetAttribute("PanelOpen", activePanel ~= nil)
+end
+
+local function closeAllPanels()
+	if activePanel then
+		panels[activePanel].Visible = false
+		activePanel = nil
+		restoreCamera()
+		lobbyUI:SetAttribute("PanelOpen", false)
+	end
+end
+
+-- ---------------------------------------------------------------------------
+-- BindableEvent — created FIRST so other scripts can WaitForChild immediately
+-- Usage: lobbyUI:WaitForChild("TogglePanel"):Fire("shop")
+-- ---------------------------------------------------------------------------
+local toggleEvent = Instance.new("BindableEvent")
+toggleEvent.Name = "TogglePanel"
+toggleEvent.Parent = lobbyUI
+
+toggleEvent.Event:Connect(function(panelName)
+	if panelName == nil then
+		closeAllPanels()
+	elseif panels[panelName] then
+		togglePanel(panelName)
+	end
+end)
+
+-- ESC closes any open panel
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Escape then
+		closeAllPanels()
+	end
+end)
+
+-- ---------------------------------------------------------------------------
+-- HUD buttons — optional, wired only if they exist
+-- ---------------------------------------------------------------------------
+local function wireButton(name, panelName)
+	local button = hud:FindFirstChild(name, true)
+	if button then
+		button.Activated:Connect(function()
+			togglePanel(panelName)
+		end)
+	end
+end
+
+wireButton("ShopButton", "shop")
+wireButton("SettingsButton", "settings")
+wireButton("LoadoutButton", "loadout")
+
+-- ---------------------------------------------------------------------------
+-- HUD data updates — all elements optional, silently skipped if missing
+-- ---------------------------------------------------------------------------
+local goldLabel  = hud:FindFirstChild("GoldLabel", true)
+local xpBar      = hud:FindFirstChild("XPBar", true)
+local xpFill     = xpBar and xpBar:FindFirstChild("Fill", true)
+local levelLabel = hud:FindFirstChild("LevelLabel", true)
+local xpLabel    = hud:FindFirstChild("XPLabel", true)
+local waveStatus = hud:FindFirstChild("WaveStatus", true)
+
+local function formatNumber(n)
+	local formatted = tostring(math.floor(n))
+	local k
+	while true do
+		formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
+		if k == 0 then break end
+	end
+	return formatted
+end
+
+local function updateGold()
+	if not goldLabel then return end
+	local gold = player:GetAttribute("Gold") or 0
+	goldLabel.Text = formatNumber(gold)
+end
+
+local function updateXP()
+	local xp = player:GetAttribute("XP") or 0
+	local level = player:GetAttribute("Level") or 1
+	local xpForNext = player:GetAttribute("XPForNextLevel") or 1000
+
+	if levelLabel then levelLabel.Text = "Lv. " .. level end
+	if xpLabel then xpLabel.Text = formatNumber(xp) .. " / " .. formatNumber(xpForNext) .. " XP" end
+	if xpFill then xpFill.Size = UDim2.new(math.clamp(xp / xpForNext, 0, 1), 0, 1, 0) end
+end
+
+local function updateWaveStatus()
+	if not waveStatus then return end
+	local waveText = player:GetAttribute("WaveStatus") or "Waiting for players..."
+	waveStatus.Text = waveText
+end
+
+updateGold()
+updateXP()
+updateWaveStatus()
+
+player.AttributeChanged:Connect(function(attr)
+	if attr == "Gold" then
+		updateGold()
+	elseif attr == "XP" or attr == "Level" or attr == "XPForNextLevel" then
+		updateXP()
+	elseif attr == "WaveStatus" then
+		updateWaveStatus()
+	end
+end)
+
+player.CharacterAdded:Connect(function()
+	updateGold()
+	updateXP()
+	updateWaveStatus()
+end)
