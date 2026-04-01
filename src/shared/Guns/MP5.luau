@@ -23,7 +23,7 @@ return {
 	recoilRotation = 1.4,
 	recoilRecovery = 14,
 
-	viewModelName = "MP5ViewModel",
+	viewModelName = "MP5",
 	hipOffset = CFrame.new(0.5, -0.4, -0.9),
 	adsDistance = -1,
 	equipTime   = 0.35,

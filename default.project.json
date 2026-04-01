@@ -60,6 +60,11 @@
         "$properties": { "RequiresHandle": false },
         "GunScript": { "$path": "src/tools/Shotgun/GunScript.client.luau" }
       },
+      "Revolver": {
+        "$className": "Tool",
+        "$properties": { "RequiresHandle": false },
+        "GunScript": { "$path": "src/tools/Revolver/GunScript.client.luau" }
+      },
       "MP5": {
         "$className": "Tool",
         "$properties": { "RequiresHandle": false },
