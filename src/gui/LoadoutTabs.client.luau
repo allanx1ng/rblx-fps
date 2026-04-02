@@ -1,5 +1,5 @@
 -- Wires up tagged buttons inside LoadoutPanel to switch between sub-pages.
--- Lives at: LobbyUI > Main > LoadoutPanel > LoadoutTabs
+-- Lives at: LobbyUI > LoadoutTabs (LocalScript)
 --
 -- Supported tags (on GuiButtons):
 --   LoadoutTabOverview, LoadoutTabPrimary, LoadoutTabSecondary,
@@ -8,6 +8,8 @@
 -- Supported tags (on Frames — the pages themselves):
 --   LoadoutPageOverview, LoadoutPagePrimary, LoadoutPageSecondary,
 --   LoadoutPageMelee, LoadoutPageItems, LoadoutPagePassives
+--
+-- Back buttons inside sub-pages should be tagged "LoadoutTabOverview".
 
 local CollectionService = game:GetService("CollectionService")
 
@@ -24,21 +26,36 @@ local TABS = {
 	{ button = "LoadoutTabPassives",   page = "LoadoutPagePassives" },
 }
 
-local function findTaggedDescendant(tag)
-	for _, instance in CollectionService:GetTagged(tag) do
-		if instance:IsDescendantOf(loadoutPanel) then
-			return instance
-		end
-	end
-	return nil
+local PAGE_TAGS = {}
+for _, tab in TABS do
+	PAGE_TAGS[tab.page] = true
 end
 
--- Resolve all pages and buttons
+local function findAllTaggedDescendants(tag)
+	local results = {}
+	for _, instance in CollectionService:GetTagged(tag) do
+		if instance:IsDescendantOf(loadoutPanel) then
+			table.insert(results, instance)
+		end
+	end
+	return results
+end
+
+-- Resolve all pages
 local pages = {}
-local buttons = {}
 for _, tab in TABS do
-	pages[tab.page] = findTaggedDescendant(tab.page)
-	buttons[tab.button] = findTaggedDescendant(tab.button)
+	local found = findAllTaggedDescendants(tab.page)
+	if #found > 0 then
+		pages[tab.page] = found[1]
+	end
+end
+
+-- Force ALL pages hidden immediately on startup
+for _, tab in TABS do
+	local page = pages[tab.page]
+	if page then
+		page.Visible = false
+	end
 end
 
 local function showPage(pageTag)
@@ -50,35 +67,40 @@ local function showPage(pageTag)
 	end
 end
 
--- Wire up buttons
-for _, tab in TABS do
-	local button = buttons[tab.button]
-	if button and button:IsA("GuiButton") then
-		button.Activated:Connect(function()
-			showPage(tab.page)
-		end)
-	end
+-- Wire a button to show its target page
+local wiredButtons = {}
+
+local function wireButton(button, pageTag)
+	if not button:IsA("GuiButton") then return end
+	if wiredButtons[button] then return end
+	wiredButtons[button] = true
+
+	button.Activated:Connect(function()
+		showPage(pageTag)
+	end)
 end
 
--- Also wire buttons added later
+-- Wire ALL matching buttons (not just the first) — handles multiple back buttons
 for _, tab in TABS do
+	for _, button in findAllTaggedDescendants(tab.button) do
+		wireButton(button, tab.page)
+	end
+
 	CollectionService:GetInstanceAddedSignal(tab.button):Connect(function(button)
-		if button:IsA("GuiButton") and button:IsDescendantOf(loadoutPanel) then
-			buttons[tab.button] = button
-			button.Activated:Connect(function()
-				showPage(tab.page)
-			end)
+		if button:IsDescendantOf(loadoutPanel) then
+			wireButton(button, tab.page)
 		end
 	end)
 
 	CollectionService:GetInstanceAddedSignal(tab.page):Connect(function(page)
 		if page:IsDescendantOf(loadoutPanel) then
 			pages[tab.page] = page
+			page.Visible = false
 		end
 	end)
 end
 
--- Default to overview on load
+-- Now show overview as the default
 showPage("LoadoutPageOverview")
 
 -- Reset to overview whenever the loadout panel is closed or another panel is opened

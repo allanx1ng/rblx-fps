@@ -2,11 +2,11 @@ return {
 	name = "TestGun3",
 	autoFire = true,
 	capacity = 100,
-	damage = 25,
+	damage = 40,
 	range = 800,
 	fireRate = 0.09,  -- ~650 RPM
 
-	baseSpread = 1.2,
+	baseSpread = 1.0,
 	rapidFireSpread = 2,
 	movementSpread = 6.0,
 	spreadDecayRate = 16.0,
@@ -14,7 +14,7 @@ return {
 
 	adsSpeed = 0.18,
 	adsMagnification = 1.3,
-	adsSpreadMultiplier = 0.3,
+	adsSpreadMultiplier = 0.4,
 
 	reloadTime = 2.2,
 	spareAmmo = 1000,  -- 6 extra mags
@@ -29,6 +29,6 @@ return {
 	equipTime   = 0.4,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),
 
-	headshotMultiplier = 3,
-	limbMultiplier     = 0.5,
+	headshotMultiplier = 2.5,
+	limbMultiplier     = 0.75,
 }

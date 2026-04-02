@@ -2,7 +2,7 @@ return {
 	name = "MP5",
 	autoFire = true,
 	capacity = 30,
-	damage = 25,
+	damage = 30,
 	range = 400,
 	fireRate = 0.075,  -- ~800 RPM
 
