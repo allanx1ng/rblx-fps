@@ -43,21 +43,15 @@ local function findTaggedDescendant(ancestor, tag)
 end
 
 local function isWeaponUnlocked(entry)
-	local level = player:GetAttribute("Level") or 1
-	if level < entry.unlockLevel then return false end
-
-	-- Check if purchased (for weapons that cost gold)
-	if entry.unlockCost > 0 then
-		local owned = player:GetAttribute("Owns_" .. entry.name)
-		if not owned then return false end
-	end
-
-	return true
+	-- PLACEHOLDER
+	return false
 end
 
 local function isWeaponEquipped(entry, slot)
-	local equipped = player:GetAttribute("Equipped_" .. slot)
-	return equipped == entry.name
+	-- local equipped = player:GetAttribute("Equipped_" .. slot)
+	-- return equipped == entry.name
+	-- PLACEHOLDER
+	return false
 end
 
 local function buildList(slot)
@@ -90,13 +84,13 @@ local function buildList(slot)
 		local nameLabel = item:FindFirstChild("WeaponName", true)
 		if nameLabel then nameLabel.Text = entry.displayName end
 
-		local descLabel = item:FindFirstChild("WeaponDesc", true)
-		if descLabel then descLabel.Text = entry.description end
+		-- local descLabel = item:FindFirstChild("WeaponDesc", true)
+		-- if descLabel then descLabel.Text = entry.description end
 
 		local unlocked = isWeaponUnlocked(entry)
 
-		local lockIcon = item:FindFirstChild("LockIcon", true)
-		if lockIcon then lockIcon.Visible = not unlocked end
+		-- local lockIcon = item:FindFirstChild("LockIcon", true)
+		-- if lockIcon then lockIcon.Visible = not unlocked end
 
 		local lockText = item:FindFirstChild("LockText", true)
 		if lockText then
@@ -104,18 +98,18 @@ local function buildList(slot)
 				lockText.Visible = false
 			else
 				lockText.Visible = true
-				local parts = {}
-				if entry.unlockLevel > 0 then
-					table.insert(parts, "Lv. " .. entry.unlockLevel)
-				end
-				if entry.unlockCost > 0 then
-					table.insert(parts, formatNumber(entry.unlockCost) .. "g")
-				end
-				lockText.Text = table.concat(parts, " · ")
+				-- local parts = {}
+				-- if entry.unlockLevel > 0 then
+				-- 	table.insert(parts, "Lv. " .. entry.unlockLevel)
+				-- end
+				-- if entry.unlockCost > 0 then
+				-- 	table.insert(parts, formatNumber(entry.unlockCost) .. "g")
+				-- end
+				-- lockText.Text = table.concat(parts, " · ")
 			end
 		end
 
-		local equippedIcon = item:FindFirstChild("EquippedIcon", true)
+		local equippedIcon = item:FindFirstChild("EquippedText", true)
 		if equippedIcon then
 			equippedIcon.Visible = isWeaponEquipped(entry, slot)
 		end

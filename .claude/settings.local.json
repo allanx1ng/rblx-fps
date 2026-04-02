@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/hyper/Documents/Code/fps-game-test -type f -name *.lua*)",
+      "Bash(xargs grep:*)"
+    ]
+  }
+}
