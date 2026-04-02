@@ -84,7 +84,9 @@
           "$className": "ScreenGui",
           "HUDController": { "$path": "src/gui/HUDController.client.luau" }
         },
-        "OpenShop": { "$path": "src/gui/OpenShop.client.luau" }
+        "OpenShop": { "$path": "src/gui/OpenShop.client.luau" },
+        "LoadoutTabs": { "$path": "src/gui/LoadoutTabs.client.luau" },
+        "WeaponListBuilder": { "$path": "src/gui/WeaponListBuilder.client.luau" }
       }
     },
 

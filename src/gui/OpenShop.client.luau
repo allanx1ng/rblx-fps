@@ -1,5 +1,5 @@
--- Automatically wires up any GuiButton tagged "ToggleShop" to toggle the shop panel.
--- Also supports "ToggleSettings" and "ToggleLoadout" tags.
+-- Automatically wires up tagged GuiButtons to toggle panels.
+-- Supported tags: ToggleShop, ToggleSettings, ToggleLoadout, ClosePanel
 -- Tag buttons in Studio via the Properties panel or the Tag Editor plugin.
 
 local CollectionService = game:GetService("CollectionService")
@@ -7,10 +7,11 @@ local CollectionService = game:GetService("CollectionService")
 local lobbyUI = script:FindFirstAncestor("LobbyUI")
 local toggleEvent = lobbyUI:WaitForChild("TogglePanel")
 
-local TAG_TO_PANEL = {
-	ToggleShop     = "shop",
-	ToggleSettings = "settings",
-	ToggleLoadout  = "loadout",
+local TAGS = {
+	{ tag = "ToggleShop",     panel = "shop" },
+	{ tag = "ToggleSettings", panel = "settings" },
+	{ tag = "ToggleLoadout",  panel = "loadout" },
+	{ tag = "ClosePanel",     panel = nil },  -- fires nil → closes whatever is open
 }
 
 local function wireButton(button, panelName)
@@ -20,11 +21,11 @@ local function wireButton(button, panelName)
 	end)
 end
 
-for tag, panelName in TAG_TO_PANEL do
-	for _, button in CollectionService:GetTagged(tag) do
-		wireButton(button, panelName)
+for _, entry in TAGS do
+	for _, button in CollectionService:GetTagged(entry.tag) do
+		wireButton(button, entry.panel)
 	end
-	CollectionService:GetInstanceAddedSignal(tag):Connect(function(button)
-		wireButton(button, panelName)
+	CollectionService:GetInstanceAddedSignal(entry.tag):Connect(function(button)
+		wireButton(button, entry.panel)
 	end)
 end
