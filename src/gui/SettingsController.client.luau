@@ -91,6 +91,11 @@ local function updateSliderVisual(sliderFrame, config)
 		fill.Size = UDim2.new(math.clamp(normalized, 0, 1), 0, 1, 0)
 	end
 
+	local handle = sliderFrame:FindFirstChild("Handle", true)
+	if handle then
+		handle.Position = UDim2.new(math.clamp(normalized, 0, 1), 0, 0.5, 0)
+	end
+
 	local valueLabel = sliderFrame:FindFirstChild("Value", true)
 	if valueLabel then
 		valueLabel.Text = tostring(math.floor(value)) .. config.suffix
@@ -103,27 +108,35 @@ local allSliders = {} -- { [attr] = { {frame, config}, ... } }
 local function wireOneSlider(sliderFrame, config)
 	updateSliderVisual(sliderFrame, config)
 
+	local track = sliderFrame:FindFirstChild("Track", true)
+	local handle = sliderFrame:FindFirstChild("Handle", true)
 	local dragging = false
+
+	-- Use the Track (CanvasGroup) for mouse position calculations
+	local dragArea = track or sliderFrame
 
 	local function updateFromMouse()
 		local mousePos = UserInputService:GetMouseLocation()
-		local absPos = sliderFrame.AbsolutePosition
-		local absSize = sliderFrame.AbsoluteSize
+		local absPos = dragArea.AbsolutePosition
+		local absSize = dragArea.AbsoluteSize
 		local normalized = math.clamp((mousePos.X - absPos.X) / absSize.X, 0, 1)
 		local value = math.floor(config.min + normalized * (config.max - config.min))
 		player:SetAttribute(config.attr, value)
 	end
 
-	sliderFrame.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-			updateFromMouse()
-		end
-	end)
+	-- Drag starts only on the handle
+	if handle then
+		handle.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				dragging = true
+			end
+		end)
+	end
 
-	sliderFrame.InputEnded:Connect(function(input)
+	-- Clicking the track also jumps to that position
+	dragArea.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
+			updateFromMouse()
 		end
 	end)
 
