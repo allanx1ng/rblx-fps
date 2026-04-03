@@ -411,7 +411,6 @@ function GunHandler:init()
 		end)
 	end
 
-	-- Unequipped may not fire when the character dies (tool destroyed with it).
 	-- CharacterRemoving guarantees endSession() is always called on death so that
 	-- session connections (RenderStepped, InputBegan, etc.) don't outlive the session.
 	-- Do NOT self-disconnect: it must fire on every death, not just the first.

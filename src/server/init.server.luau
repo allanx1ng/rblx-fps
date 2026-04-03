@@ -8,6 +8,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local PlayerStats = require(ReplicatedStorage.Shared.PlayerStats)
 local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
+local ItemRegistry = require(ReplicatedStorage.Shared.ItemRegistry)
 local Guns = ReplicatedStorage.Shared.Guns
 local ActiveItems = ReplicatedStorage.Shared.Items.Actives
 local WeaponTools = ServerStorage:WaitForChild("WeaponTools")
@@ -246,9 +247,11 @@ end)
 -- end
 
 -- ---------------------------------------------------------------------------
--- Weapon equip / unequip — server-authoritative loadout management
+-- Inventory / loadout — server-authoritative slot management
 -- ---------------------------------------------------------------------------
-local VALID_SLOTS = { primary = true, secondary = true }
+-- Slots: primary (1), secondary (2), item1 (4), item2 (5)
+-- ActiveSlot attribute tracks which slot the player currently has in-hand.
+local VALID_SLOTS = { primary = true, secondary = true, item1 = true, item2 = true }
 
 -- Build a lookup: weaponName -> slot, for validation
 local weaponSlotLookup = {}
@@ -256,6 +259,26 @@ for slot, weapons in WeaponRegistry do
 	for _, entry in weapons do
 		weaponSlotLookup[entry.name] = slot
 	end
+end
+
+-- Build item lookup from ItemRegistry
+local VALID_ITEMS = {}
+for _, entry in ItemRegistry do
+	VALID_ITEMS[entry.name] = true
+end
+
+-- Find a tool belonging to a slot in backpack or character
+local function findSlotTool(player, slot)
+	local function searchIn(container)
+		if not container then return nil end
+		for _, child in container:GetChildren() do
+			if child:IsA("Tool") and child:GetAttribute("Slot") == slot then
+				return child
+			end
+		end
+		return nil
+	end
+	return searchIn(player.Character) or searchIn(player:FindFirstChild("Backpack"))
 end
 
 -- Remove any tool in the player's backpack/character that belongs to the given slot
@@ -272,9 +295,9 @@ local function clearSlotTool(player, slot)
 	removeIfSlot(player.Character)
 end
 
--- Clone a weapon tool from ServerStorage into the player's backpack
-local function grantWeapon(player, weaponName, slot)
-	local template = WeaponTools:FindFirstChild(weaponName)
+-- Clone a tool from ServerStorage into the player's backpack
+local function grantTool(player, toolName, slot)
+	local template = WeaponTools:FindFirstChild(toolName)
 	if not template then return end
 
 	local backpack = player:FindFirstChild("Backpack")
@@ -285,25 +308,76 @@ local function grantWeapon(player, weaponName, slot)
 	tool.Parent = backpack
 end
 
-ReplicatedStorage.Remotes.EquipWeapon.OnServerEvent:Connect(function(player, slot, weaponName)
-	-- Validate slot
+-- Put a specific slot's tool into the player's hand
+local function equipSlotTool(player, slot)
+	local character = player.Character
+	if not character then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	local tool = findSlotTool(player, slot)
+	if not tool then return end
+
+	-- If tool is already in character, it's already equipped
+	if tool.Parent == character then return end
+
+	humanoid:UnequipTools()
+	humanoid:EquipTool(tool)
+end
+
+-- SelectSlot: client presses 1-5, server equips the corresponding slot
+ReplicatedStorage.Remotes.SelectSlot.OnServerEvent:Connect(function(player, slot)
 	if not VALID_SLOTS[slot] then return end
 
-	-- Clear existing weapon in that slot
-	clearSlotTool(player, slot)
+	-- Nothing assigned to this slot
+	local equippedName = player:GetAttribute("Equipped_" .. slot)
+	if not equippedName then return end
 
-	if weaponName == nil then
-		-- Unequip: just clear the attribute
-		player:SetAttribute("Equipped_" .. slot, nil)
+	local activeSlot = player:GetAttribute("ActiveSlot")
+
+	if activeSlot == slot then
+		-- Already holding this slot — do nothing (same key press)
 		return
 	end
 
-	-- Validate weapon exists and belongs to the requested slot
-	if weaponSlotLookup[weaponName] ~= slot then return end
+	-- Switch to this slot
+	player:SetAttribute("ActiveSlot", slot)
+	equipSlotTool(player, slot)
+end)
 
-	-- Grant the weapon and record it
+-- EquipWeapon: loadout UI assigns a weapon/item to a slot
+ReplicatedStorage.Remotes.EquipWeapon.OnServerEvent:Connect(function(player, slot, weaponName)
+	if not VALID_SLOTS[slot] then return end
+
+	local wasActiveSlot = player:GetAttribute("ActiveSlot") == slot
+
+	-- Clear existing tool in that slot
+	clearSlotTool(player, slot)
+
+	if weaponName == nil then
+		-- Unequip: clear the attribute
+		player:SetAttribute("Equipped_" .. slot, nil)
+		if wasActiveSlot then
+			player:SetAttribute("ActiveSlot", nil)
+		end
+		return
+	end
+
+	-- Validate: weapons must match their registry slot, items must be in VALID_ITEMS
+	if slot == "primary" or slot == "secondary" then
+		if weaponSlotLookup[weaponName] ~= slot then return end
+	elseif slot == "item1" or slot == "item2" then
+		if not VALID_ITEMS[weaponName] then return end
+	end
+
+	-- Grant the tool and record it
 	player:SetAttribute("Equipped_" .. slot, weaponName)
-	grantWeapon(player, weaponName, slot)
+	grantTool(player, weaponName, slot)
+
+	-- If the player was holding this slot, auto-equip the new tool into hand
+	if wasActiveSlot then
+		equipSlotTool(player, slot)
+	end
 end)
 
 -- ---------------------------------------------------------------------------
@@ -345,11 +419,11 @@ end
 -- ---------------------------------------------------------------------------
 -- Player setup — runs on every join
 -- ---------------------------------------------------------------------------
-local function regrantEquippedWeapons(player)
-	for _, slot in { "primary", "secondary" } do
-		local weaponName = player:GetAttribute("Equipped_" .. slot)
-		if weaponName then
-			grantWeapon(player, weaponName, slot)
+local function regrantEquippedTools(player)
+	for slot in VALID_SLOTS do
+		local toolName = player:GetAttribute("Equipped_" .. slot)
+		if toolName then
+			grantTool(player, toolName, slot)
 		end
 	end
 end
@@ -358,13 +432,13 @@ local function onPlayerAdded(player)
 	player.CharacterAdded:Connect(function(character)
 		startHealthRegen(character)
 		-- Re-grant equipped weapons after respawn (Backpack is cleared on spawn)
-		regrantEquippedWeapons(player)
+		regrantEquippedTools(player)
 	end)
 
 	-- Handle already-spawned character (e.g. if PlayerAdded fires late)
 	if player.Character then
 		startHealthRegen(player.Character)
-		regrantEquippedWeapons(player)
+		regrantEquippedTools(player)
 	end
 end
 

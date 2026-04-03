@@ -13,7 +13,8 @@
         "FireProjectile": { "$className": "RemoteEvent" },
         "ProjectileSpawned": { "$className": "RemoteEvent" },
         "UseHealingPotion": { "$className": "RemoteEvent" },
-        "EquipWeapon": { "$className": "RemoteEvent" }
+        "EquipWeapon": { "$className": "RemoteEvent" },
+        "SelectSlot": { "$className": "RemoteEvent" }
       }
     },
 
@@ -54,6 +55,11 @@
           "$className": "Tool",
           "$properties": { "RequiresHandle": false },
           "GunScript": { "$path": "src/tools/Revolver/GunScript.client.luau" }
+        },
+        "HealingPotion": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "HealingPotionScript": { "$path": "src/tools/HealingPotion/HealingPotionScript.client.luau" }
         }
       }
     },
@@ -65,11 +71,7 @@
     },
 
     "StarterPack": {
-      "HealingPotion": {
-        "$className": "Tool",
-        "$properties": { "RequiresHandle": false },
-        "HealingPotionScript": { "$path": "src/tools/HealingPotion/HealingPotionScript.client.luau" }
-      }
+      "$className": "StarterPack"
     },
 
     "StarterGui": {

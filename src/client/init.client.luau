@@ -13,6 +13,7 @@ UserInputService.MouseIconEnabled = false
 -- Disable default Roblox UI
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
 
 -- Each controller is spawned independently so a WaitForChild in one
@@ -24,3 +25,5 @@ task.spawn(require, script.CrouchController)
 task.spawn(require, script.AmmoBoxController)
 task.spawn(require, script.ProjectileHider)
 task.spawn(require, script.SensitivityController)
+task.spawn(require, script.ToolCleanupController)
+task.spawn(require, script.InventoryController)
