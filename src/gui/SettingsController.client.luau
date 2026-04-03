@@ -22,9 +22,11 @@ local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
+local topbarInset = GuiService:GetGuiInset() -- (0, 36) typically
 
 -- ---------------------------------------------------------------------------
 -- Settings definitions
@@ -58,17 +60,36 @@ end
 -- ---------------------------------------------------------------------------
 -- Apply volume settings
 -- ---------------------------------------------------------------------------
+-- Auto-create Master SoundGroup if it doesn't exist
+local masterGroup = SoundService:FindFirstChild("Master")
+if not masterGroup then
+	masterGroup = Instance.new("SoundGroup")
+	masterGroup.Name = "Master"
+	masterGroup.Parent = SoundService
+end
+
+-- Auto-assign every Sound in the game to the Master SoundGroup
+local function assignToMaster(sound)
+	if sound.SoundGroup == nil then
+		sound.SoundGroup = masterGroup
+	end
+end
+
+for _, desc in game:GetDescendants() do
+	if desc:IsA("Sound") then
+		assignToMaster(desc)
+	end
+end
+
+game.DescendantAdded:Connect(function(desc)
+	if desc:IsA("Sound") then
+		assignToMaster(desc)
+	end
+end)
+
 local function applyVolume()
 	local master = (player:GetAttribute("MasterVolume") or 100) / 100
-	SoundService.Volume = master
-
-	-- Uncomment when SFX/Music SoundGroups are added:
-	-- local sfx   = (player:GetAttribute("SFXVolume") or 100) / 100
-	-- local music = (player:GetAttribute("MusicVolume") or 100) / 100
-	-- local sfxGroup = SoundService:FindFirstChild("SFX")
-	-- if sfxGroup then sfxGroup.Volume = sfx end
-	-- local musicGroup = SoundService:FindFirstChild("Music")
-	-- if musicGroup then musicGroup.Volume = music end
+	masterGroup.Volume = master
 end
 
 player.AttributeChanged:Connect(function(attr)
@@ -114,9 +135,11 @@ local function wireOneSlider(sliderFrame, config)
 
 	-- Use the Track (CanvasGroup) for mouse position calculations
 	local dragArea = track or sliderFrame
+	dragArea.Active = true
+	if handle then handle.Active = true end
 
 	local function updateFromMouse()
-		local mousePos = UserInputService:GetMouseLocation()
+		local mousePos = UserInputService:GetMouseLocation() - topbarInset
 		local absPos = dragArea.AbsolutePosition
 		local absSize = dragArea.AbsoluteSize
 		local normalized = math.clamp((mousePos.X - absPos.X) / absSize.X, 0, 1)
@@ -159,10 +182,14 @@ local function wireOneSlider(sliderFrame, config)
 end
 
 for tag, config in SLIDERS do
-	for _, sliderFrame in CollectionService:GetTagged(tag) do
+	local found = CollectionService:GetTagged(tag)
+	warn("[SettingsController] Tag:", tag, "found:", #found)
+	for _, sliderFrame in found do
+		warn("[SettingsController] Wiring slider:", sliderFrame:GetFullName())
 		wireOneSlider(sliderFrame, config)
 	end
 	CollectionService:GetInstanceAddedSignal(tag):Connect(function(sliderFrame)
+		warn("[SettingsController] Late add:", sliderFrame:GetFullName())
 		wireOneSlider(sliderFrame, config)
 	end)
 end

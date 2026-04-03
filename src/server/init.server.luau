@@ -4,9 +4,13 @@ local Debris = game:GetService("Debris")
 -- local DataStoreService = game:GetService("DataStoreService")
 -- local MarketplaceService = game:GetService("MarketplaceService")
 
+local ServerStorage = game:GetService("ServerStorage")
+
 local PlayerStats = require(ReplicatedStorage.Shared.PlayerStats)
+local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
 local Guns = ReplicatedStorage.Shared.Guns
 local ActiveItems = ReplicatedStorage.Shared.Items.Actives
+local WeaponTools = ServerStorage:WaitForChild("WeaponTools")
 
 -- ---------------------------------------------------------------------------
 -- Damage multipliers by body part name (works for both R6 and R15)
@@ -242,6 +246,67 @@ end)
 -- end
 
 -- ---------------------------------------------------------------------------
+-- Weapon equip / unequip — server-authoritative loadout management
+-- ---------------------------------------------------------------------------
+local VALID_SLOTS = { primary = true, secondary = true }
+
+-- Build a lookup: weaponName -> slot, for validation
+local weaponSlotLookup = {}
+for slot, weapons in WeaponRegistry do
+	for _, entry in weapons do
+		weaponSlotLookup[entry.name] = slot
+	end
+end
+
+-- Remove any tool in the player's backpack/character that belongs to the given slot
+local function clearSlotTool(player, slot)
+	local function removeIfSlot(container)
+		if not container then return end
+		for _, child in container:GetChildren() do
+			if child:IsA("Tool") and child:GetAttribute("Slot") == slot then
+				child:Destroy()
+			end
+		end
+	end
+	removeIfSlot(player:FindFirstChild("Backpack"))
+	removeIfSlot(player.Character)
+end
+
+-- Clone a weapon tool from ServerStorage into the player's backpack
+local function grantWeapon(player, weaponName, slot)
+	local template = WeaponTools:FindFirstChild(weaponName)
+	if not template then return end
+
+	local backpack = player:FindFirstChild("Backpack")
+	if not backpack then return end
+
+	local tool = template:Clone()
+	tool:SetAttribute("Slot", slot)
+	tool.Parent = backpack
+end
+
+ReplicatedStorage.Remotes.EquipWeapon.OnServerEvent:Connect(function(player, slot, weaponName)
+	-- Validate slot
+	if not VALID_SLOTS[slot] then return end
+
+	-- Clear existing weapon in that slot
+	clearSlotTool(player, slot)
+
+	if weaponName == nil then
+		-- Unequip: just clear the attribute
+		player:SetAttribute("Equipped_" .. slot, nil)
+		return
+	end
+
+	-- Validate weapon exists and belongs to the requested slot
+	if weaponSlotLookup[weaponName] ~= slot then return end
+
+	-- Grant the weapon and record it
+	player:SetAttribute("Equipped_" .. slot, weaponName)
+	grantWeapon(player, weaponName, slot)
+end)
+
+-- ---------------------------------------------------------------------------
 -- Custom health regen — replaces the default Roblox "Health" script
 -- ---------------------------------------------------------------------------
 local function startHealthRegen(character)
@@ -280,14 +345,26 @@ end
 -- ---------------------------------------------------------------------------
 -- Player setup — runs on every join
 -- ---------------------------------------------------------------------------
+local function regrantEquippedWeapons(player)
+	for _, slot in { "primary", "secondary" } do
+		local weaponName = player:GetAttribute("Equipped_" .. slot)
+		if weaponName then
+			grantWeapon(player, weaponName, slot)
+		end
+	end
+end
+
 local function onPlayerAdded(player)
 	player.CharacterAdded:Connect(function(character)
 		startHealthRegen(character)
+		-- Re-grant equipped weapons after respawn (Backpack is cleared on spawn)
+		regrantEquippedWeapons(player)
 	end)
 
 	-- Handle already-spawned character (e.g. if PlayerAdded fires late)
 	if player.Character then
 		startHealthRegen(player.Character)
+		regrantEquippedWeapons(player)
 	end
 end
 

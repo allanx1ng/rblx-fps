@@ -12,7 +12,49 @@
         "DealDamage": { "$className": "RemoteEvent" },
         "FireProjectile": { "$className": "RemoteEvent" },
         "ProjectileSpawned": { "$className": "RemoteEvent" },
-        "UseHealingPotion": { "$className": "RemoteEvent" }
+        "UseHealingPotion": { "$className": "RemoteEvent" },
+        "EquipWeapon": { "$className": "RemoteEvent" }
+      }
+    },
+
+    "ServerStorage": {
+      "WeaponTools": {
+        "$className": "Folder",
+        "M4": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/M4/GunScript.client.luau" }
+        },
+        "MP5": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/MP5/GunScript.client.luau" }
+        },
+        "Shotgun": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/Shotgun/GunScript.client.luau" }
+        },
+        "Sniper": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/Sniper/GunScript.client.luau" }
+        },
+        "HyperlaserGun": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/HyperlaserGun/GunScript.client.luau" }
+        },
+        "Glock17": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/Glock17/GunScript.client.luau" }
+        },
+        "Revolver": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/Revolver/GunScript.client.luau" }
+        }
       }
     },
 
@@ -23,53 +65,6 @@
     },
 
     "StarterPack": {
-      "TestGun": {
-        "$className": "Tool",
-        "$properties": { "RequiresHandle": false },
-        "GunScript": { "$path": "src/tools/TestGun/GunScript.client.luau" }
-      },
-      "Glock17": {
-        "$className": "Tool",
-        "GunScript": { "$path": "src/tools/Glock17/GunScript.client.luau" }
-      },
-      "M4": {
-        "$className": "Tool",
-        "GunScript": { "$path": "src/tools/M4/GunScript.client.luau" }
-      },
-      "Sniper": {
-        "$className": "Tool",
-        "GunScript": { "$path": "src/tools/Sniper/GunScript.client.luau" }
-      },
-      "TestGun2": {
-        "$className": "Tool",
-        "$properties": { "RequiresHandle": false },
-        "GunScript": { "$path": "src/tools/TestGun2/GunScript.client.luau" }
-      },
-      "TestGun3": {
-        "$className": "Tool",
-        "$properties": { "RequiresHandle": false },
-        "GunScript": { "$path": "src/tools/TestGun3/GunScript.client.luau" }
-      },
-      "HyperlaserGun": {
-        "$className": "Tool",
-        "$properties": { "RequiresHandle": false },
-        "GunScript": { "$path": "src/tools/HyperlaserGun/GunScript.client.luau" }
-      },
-      "Shotgun": {
-        "$className": "Tool",
-        "$properties": { "RequiresHandle": false },
-        "GunScript": { "$path": "src/tools/Shotgun/GunScript.client.luau" }
-      },
-      "Revolver": {
-        "$className": "Tool",
-        "$properties": { "RequiresHandle": false },
-        "GunScript": { "$path": "src/tools/Revolver/GunScript.client.luau" }
-      },
-      "MP5": {
-        "$className": "Tool",
-        "$properties": { "RequiresHandle": false },
-        "GunScript": { "$path": "src/tools/MP5/GunScript.client.luau" }
-      },
       "HealingPotion": {
         "$className": "Tool",
         "$properties": { "RequiresHandle": false },
