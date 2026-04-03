@@ -9,6 +9,7 @@ local ViewModelController = require(script.Parent.ViewModelController)
 local DEFAULT_FOV = 70
 local RAYCAST_DISTANCE = 500  -- studs, fallback if config.range not set
 
+
 local GunHandler = {}
 GunHandler.__index = GunHandler
 
@@ -330,8 +331,8 @@ function GunHandler:startSession()
 
 	table.insert(self.sessionConnections, RunService.RenderStepped:Connect(function()
 		self.spreadValue.Value = self:peekSpread()
-		-- Scale mouse sensitivity with FOV so high-magnification scopes feel natural
-		UserInputService.MouseDeltaSensitivity = workspace.CurrentCamera.FieldOfView / DEFAULT_FOV
+		-- Store FOV ratio so SensitivityController can apply it alongside the user setting
+		Players.LocalPlayer:SetAttribute("FOVSensScale", workspace.CurrentCamera.FieldOfView / DEFAULT_FOV)
 	end))
 
 	table.insert(self.sessionConnections, UserInputService.InputBegan:Connect(function(input, processed)
@@ -389,7 +390,7 @@ function GunHandler:endSession()
 	if self.spreadValue.Parent then
 		self.spreadValue.Value = 0
 	end
-	UserInputService.MouseDeltaSensitivity = 1
+	Players.LocalPlayer:SetAttribute("FOVSensScale", 1)
 	ViewModelController.hide()
 end
 
