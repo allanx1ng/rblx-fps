@@ -6,7 +6,7 @@ return {
 	range = 900,
 	fireRate = 1.2,
 
-	baseSpread = 2.5,
+	baseSpread = 1.6,
 	rapidFireSpread = 12,
 	movementSpread = 18.0,
 	spreadDecayRate = 8.0,
@@ -14,7 +14,7 @@ return {
 
 	adsSpeed = 0.6,
 	adsMagnification = 8,
-	adsSpreadMultiplier = 0.03,
+	adsSpreadMultiplier = 0.01,
 
 	reloadTime = 2.8,
 	spareAmmo = 30,

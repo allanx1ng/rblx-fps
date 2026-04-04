@@ -2,11 +2,11 @@ return {
 	name = "AK47",
 	autoFire = true,
 	capacity = 30,
-	damage = 45,
+	damage = 50,
 	range = 700,
 	fireRate = 0.1,  -- ~600 RPM
 
-	baseSpread = 1.4,
+	baseSpread = 1.2,
 	rapidFireSpread = 3.0,
 	movementSpread = 7.0,
 	spreadDecayRate = 13.0,

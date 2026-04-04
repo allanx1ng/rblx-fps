@@ -2,8 +2,8 @@ return {
 	name = "Shotgun",
 	pelletsPerShot = 10,
 	capacity = 6,
-	damage = 15,
-	range = 80,
+	damage = 18,
+	range = 100,
 	fireRate = 0.4,
 
 	baseSpread = 4,

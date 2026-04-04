@@ -2,7 +2,7 @@ return {
 	name = "Minigun",
 	autoFire = true,
 	capacity = 200,
-	damage = 20,
+	damage = 40,
 	range = 500,
 	fireRate = 0.04,  -- ~1500 RPM
 

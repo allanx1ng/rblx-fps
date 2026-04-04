@@ -3,7 +3,7 @@ return {
 	pelletsPerShot = 8,
 	capacity = 2,
 	damage = 18,
-	range = 50,
+	range = 100,
 	fireRate = 0.35,
 
 	baseSpread = 5.0,

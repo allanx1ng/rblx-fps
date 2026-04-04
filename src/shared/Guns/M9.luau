@@ -1,7 +1,7 @@
 return {
 	name = "M9",
-	capacity = 20,
-	damage = 20,
+	capacity = 15,
+	damage = 25,
 	range = 999,
 	fireRate = 0.1,
 

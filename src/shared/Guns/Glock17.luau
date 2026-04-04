@@ -1,21 +1,33 @@
 return {
 	name = "Glock17",
 	capacity = 17,
-	damage = 30,
-	range = 80,
-	fireRate = 0.15,      -- seconds between shots (semi-auto, ~6/sec max)
+	damage = 25,
+	range = 999,
+	fireRate = 0.1,
 
-	baseSpread = 2.0,     -- degrees, standing still, first shot
-	rapidFireSpread = 1.5, -- extra degrees added per shot when firing fast
-	movementSpread = 3.0, -- extra degrees while moving
-	spreadDecayRate = 4.0, -- how fast rapidFire spread decays (degrees/sec)
+	baseSpread = 1.4,
+	rapidFireSpread = 2.5,
+	movementSpread = 4.0,
+	spreadDecayRate = 12.0,
+	maxSpread = 9.0,
 
-	maxSpread = 8.0,      -- degrees, spread ceiling (reached ~shot 4-5 on rapid fire)
+	adsSpeed = 0.15,
+	adsMagnification = 1.1,
+	adsSpreadMultiplier = 0.5,
 
-	adsSpeed = 0.12,          -- seconds to fully transition in/out
-	adsMagnification = 1.3,   -- 1.3x zoom
-	adsSpreadMultiplier = 0.5, -- 50% of normal spread while ADS
+	reloadTime = 1.0,
+	spareAmmo = 60,  -- 3 extra mags
 
-	reloadTime = 1.8,     -- seconds
-	spareAmmo = 51,       -- 3 extra mags
+	viewModelName = "Glock17",
+	hipOffset = CFrame.new(0.5, -0.4, -1.0),
+	adsDistance = 0.8,
+	equipTime   = 0.35,
+	equipOffset = CFrame.new(0.2, -0.6, 0.3),  -- where arms start: right, below, back
+
+	recoilKick     = 0.08,
+	recoilRotation = 4,
+	recoilRecovery = 14,
+
+	headshotMultiplier = 1.5,
+	limbMultiplier     = 0.5,
 }
