@@ -253,6 +253,37 @@ end)
 -- ActiveSlot attribute tracks which slot the player currently has in-hand.
 local VALID_SLOTS = { primary = true, secondary = true, item1 = true, item2 = true }
 
+-- ---------------------------------------------------------------------------
+-- Unlock tracking — per-session weapon ownership
+-- ---------------------------------------------------------------------------
+-- Unlocked state is stored as player attributes: Unlocked_{weaponName} = true
+-- Free weapons (unlockCost == 0 and robuxCost == 0) are auto-unlocked on join.
+--
+-- TODO: Read persisted unlock data from DataStore here.
+--       On player join, load saved unlocks and merge with free defaults.
+--       On purchase, save the updated unlock set.
+--       On player leave, ensure any pending saves are flushed.
+
+local DEFAULT_GOLD = 999
+
+-- Build set of free weapons (auto-unlocked on join)
+local freeWeapons = {}
+for _, weapons in WeaponRegistry do
+	for _, entry in weapons do
+		if (entry.unlockCost or 0) == 0 and (entry.robuxCost or 0) == 0 then
+			freeWeapons[entry.name] = true
+		end
+	end
+end
+
+local function initPlayerUnlocks(player)
+	-- TODO: Load persisted unlocks from DataStore and apply here.
+	--       For now, only free weapons are unlocked on join.
+	for weaponName in freeWeapons do
+		player:SetAttribute("Unlocked_" .. weaponName, true)
+	end
+end
+
 -- Build a lookup: weaponName -> slot, for validation
 local weaponSlotLookup = {}
 for slot, weapons in WeaponRegistry do
@@ -366,6 +397,8 @@ ReplicatedStorage.Remotes.EquipWeapon.OnServerEvent:Connect(function(player, slo
 	-- Validate: weapons must match their registry slot, items must be in VALID_ITEMS
 	if slot == "primary" or slot == "secondary" then
 		if weaponSlotLookup[weaponName] ~= slot then return end
+		-- Block equip if weapon is not unlocked
+		if not player:GetAttribute("Unlocked_" .. weaponName) then return end
 	elseif slot == "item1" or slot == "item2" then
 		if not VALID_ITEMS[weaponName] then return end
 	end
@@ -378,6 +411,74 @@ ReplicatedStorage.Remotes.EquipWeapon.OnServerEvent:Connect(function(player, slo
 	if wasActiveSlot then
 		equipSlotTool(player, slot)
 	end
+end)
+
+-- ---------------------------------------------------------------------------
+-- PurchaseWeapon: client requests to buy a weapon with gold
+-- ---------------------------------------------------------------------------
+ReplicatedStorage.Remotes.PurchaseWeapon.OnServerEvent:Connect(function(player, weaponName)
+	if not weaponName or type(weaponName) ~= "string" then return end
+
+	-- Already unlocked
+	if player:GetAttribute("Unlocked_" .. weaponName) then
+		ReplicatedStorage.Remotes.PurchaseWeapon:FireClient(player, {
+			success = false,
+			message = "Already unlocked!",
+		})
+		return
+	end
+
+	-- Find weapon entry in registry
+	local entry = nil
+	for _, weapons in WeaponRegistry do
+		for _, w in weapons do
+			if w.name == weaponName then
+				entry = w
+				break
+			end
+		end
+		if entry then break end
+	end
+
+	if not entry then
+		ReplicatedStorage.Remotes.PurchaseWeapon:FireClient(player, {
+			success = false,
+			message = "Invalid weapon.",
+		})
+		return
+	end
+
+	-- Robux purchases are not handled here (use MarketplaceService in the future)
+	if (entry.robuxCost or 0) > 0 then
+		ReplicatedStorage.Remotes.PurchaseWeapon:FireClient(player, {
+			success = false,
+			message = "Robux purchases are not available yet.",
+		})
+		return
+	end
+
+	local cost = entry.unlockCost or 0
+	local gold = player:GetAttribute("Gold") or 0
+
+	if gold < cost then
+		ReplicatedStorage.Remotes.PurchaseWeapon:FireClient(player, {
+			success = false,
+			message = "Not enough gold!",
+		})
+		return
+	end
+
+	-- Deduct gold and unlock
+	player:SetAttribute("Gold", gold - cost)
+	player:SetAttribute("Unlocked_" .. weaponName, true)
+
+	-- TODO: Persist unlock to DataStore here.
+
+	ReplicatedStorage.Remotes.PurchaseWeapon:FireClient(player, {
+		success = true,
+		message = "Purchased!",
+		weaponName = weaponName,
+	})
 end)
 
 -- ---------------------------------------------------------------------------
@@ -429,6 +530,15 @@ local function regrantEquippedTools(player)
 end
 
 local function onPlayerAdded(player)
+	-- Initialize currency and unlocks
+	player:SetAttribute("Gold", DEFAULT_GOLD)
+	initPlayerUnlocks(player)
+
+	-- Auto-equip starter weapon (M9) if nothing equipped yet
+	if not player:GetAttribute("Equipped_secondary") then
+		player:SetAttribute("Equipped_secondary", "M9")
+	end
+
 	player.CharacterAdded:Connect(function(character)
 		startHealthRegen(character)
 		-- Re-grant equipped weapons after respawn (Backpack is cleared on spawn)

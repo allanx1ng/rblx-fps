@@ -9,6 +9,7 @@
 -- Clicking a list entry populates the CurrWeapon panel (tagged "CurrWeapon")
 -- inside the same loadout page. The EquipButton (tagged "EquipButton") inside
 -- CurrWeapon toggles equip/unequip via the EquipWeapon RemoteEvent.
+-- If the weapon is locked, clicking the button opens the purchase popup instead.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -21,6 +22,10 @@ local ItemRegistry = require(ReplicatedStorage.Shared.ItemRegistry)
 local lobbyUI = script:FindFirstAncestor("LobbyUI")
 local EquipWeapon = ReplicatedStorage.Remotes.EquipWeapon
 
+-- Currency icon asset IDs
+local COIN_ICON = "rbxassetid://93087943622513"
+local ROBUX_ICON = "rbxasset://textures/ui/common/robux.png"
+
 -- Per-page state: which entry is currently selected (viewed) in the UI
 -- For weapons: selectedEntry["primary"], selectedEntry["secondary"]
 -- For items: selectedEntry["items"]
@@ -29,18 +34,27 @@ local selectedEntry = {}
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
+-- Uses GetDescendants + HasTag instead of GetTagged to avoid relying on
+-- CollectionService's global index, which can lag behind after cloning.
 local function findTaggedDescendant(ancestor, tag)
-	for _, instance in CollectionService:GetTagged(tag) do
-		if instance:IsDescendantOf(ancestor) then
-			return instance
+	for _, child in ancestor:GetDescendants() do
+		if CollectionService:HasTag(child, tag) then
+			return child
 		end
 	end
 	return nil
 end
 
-local function isUnlocked(_entry)
-	-- TODO: check player level and ownership when unlock system is implemented
-	return true
+local function isUnlocked(entry)
+	return player:GetAttribute("Unlocked_" .. entry.name) == true
+end
+
+local function getEntryCost(entry)
+	-- Returns cost, currencyType ("gold" | "robux"), icon
+	if (entry.robuxCost or 0) > 0 then
+		return entry.robuxCost, "robux", ROBUX_ICON
+	end
+	return entry.unlockCost or 0, "gold", COIN_ICON
 end
 
 -- ---------------------------------------------------------------------------
@@ -66,6 +80,45 @@ local function getFreeItemSlot()
 		end
 	end
 	return nil
+end
+
+-- ---------------------------------------------------------------------------
+-- PriceDisplay helper — updates the PriceDisplay frame inside an EquipButton
+-- ---------------------------------------------------------------------------
+local function updatePriceDisplay(equipButton, entry)
+	local priceDisplay = equipButton:FindFirstChild("PriceDisplay")
+	if not priceDisplay then return end
+
+	if isUnlocked(entry) then
+		priceDisplay.Visible = false
+		return
+	end
+
+	local cost, _, icon = getEntryCost(entry)
+	priceDisplay.Visible = true
+
+	local unlockLabel = priceDisplay:FindFirstChild("UnlockLabel")
+	if unlockLabel then unlockLabel.Text = "Unlock" end
+
+	local currencyIcon = priceDisplay:FindFirstChild("CurrencyIcon")
+	if currencyIcon then currencyIcon.Image = icon end
+
+	local priceAmount = priceDisplay:FindFirstChild("PriceAmount")
+	if priceAmount then priceAmount.Text = tostring(cost) end
+end
+
+-- ---------------------------------------------------------------------------
+-- Purchase popup trigger — fires a BindableEvent for the popup controller
+-- ---------------------------------------------------------------------------
+local function requestPurchase(entry)
+	print("[WeaponListBuilder] requestPurchase called for:", entry.name)
+	-- Wait for the BindableEvent created by PurchasePopupController
+	local popupEvent = lobbyUI:WaitForChild("RequestPurchase", 5)
+	if not popupEvent then
+		warn("[WeaponListBuilder] RequestPurchase event not found")
+		return
+	end
+	popupEvent:Fire(entry)
 end
 
 -- ---------------------------------------------------------------------------
@@ -118,16 +171,29 @@ local function updateWeaponPanel(slot)
 	if panel.nameLabel then panel.nameLabel.Text = entry.displayName end
 	if panel.descLabel then panel.descLabel.Text = entry.description end
 
-	local equipped = player:GetAttribute("Equipped_" .. slot) == entry.name
+	local unlocked = isUnlocked(entry)
+	local equipped = unlocked and player:GetAttribute("Equipped_" .. slot) == entry.name
 
 	if panel.equipButton then
-		panel.equipButton.Text = equipped and "Unequip" or "Equip"
+		if unlocked then
+			panel.equipButton.Text = equipped and "Unequip" or "Equip"
+		else
+			panel.equipButton.Text = ""
+		end
+		updatePriceDisplay(panel.equipButton, entry)
 	end
 
 	if panel.buttonConn then panel.buttonConn:Disconnect() end
 
 	if panel.equipButton then
 		panel.buttonConn = panel.equipButton.Activated:Connect(function()
+			print("[WeaponListBuilder] EquipButton clicked, entry:", entry.name, "unlocked:", isUnlocked(entry))
+			if not isUnlocked(entry) then
+				-- Weapon is locked — open purchase popup
+				requestPurchase(entry)
+				return
+			end
+
 			if player:GetAttribute("Equipped_" .. slot) == entry.name then
 				EquipWeapon:FireServer(slot, nil)
 			else
@@ -193,19 +259,32 @@ local function updateItemPanel()
 end
 
 -- ---------------------------------------------------------------------------
+-- Cache list frames and templates once — no more tag lookups during rebuilds
+-- ---------------------------------------------------------------------------
+local cachedListFrames = {}  -- slot -> listFrame
+local cachedTemplates = {}   -- slot -> template
+
+local function cacheListData(slot)
+	local listFrame = findTaggedDescendant(lobbyUI, "WeaponList_" .. slot)
+	if not listFrame then return false end
+	local template = findTaggedDescendant(listFrame, "WeaponListTemplate")
+	if not template then return false end
+	template.Visible = false
+	cachedListFrames[slot] = listFrame
+	cachedTemplates[slot] = template
+	return true
+end
+
+-- ---------------------------------------------------------------------------
 -- List building — weapons
 -- ---------------------------------------------------------------------------
 local function buildWeaponList(slot)
 	local weapons = WeaponRegistry[slot]
 	if not weapons or #weapons == 0 then return end
 
-	local listFrame = findTaggedDescendant(lobbyUI, "WeaponList_" .. slot)
-	if not listFrame then return end
-
-	local template = findTaggedDescendant(listFrame, "WeaponListTemplate")
-	if not template then return end
-
-	template.Visible = false
+	local listFrame = cachedListFrames[slot]
+	local template = cachedTemplates[slot]
+	if not listFrame or not template then return end
 
 	for _, child in listFrame:GetChildren() do
 		if child ~= template and child:GetAttribute("Generated") then
@@ -221,17 +300,30 @@ local function buildWeaponList(slot)
 		item:SetAttribute("WeaponName", entry.name)
 		item.Visible = true
 
+		CollectionService:RemoveTag(item, "WeaponListTemplate")
+
 		local nameLabel = item:FindFirstChild("WeaponName", true)
 		if nameLabel then nameLabel.Text = entry.displayName end
 
 		local unlocked = isUnlocked(entry)
+		local equipped = unlocked and player:GetAttribute("Equipped_" .. slot) == entry.name
 
 		local lockText = item:FindFirstChild("LockText", true)
-		if lockText then lockText.Visible = not unlocked end
+		if lockText then
+			if not unlocked then
+				lockText.Text = "Locked"
+				lockText.Visible = true
+			elseif equipped then
+				lockText.Visible = false
+			else
+				lockText.Text = "Owned"
+				lockText.Visible = true
+			end
+		end
 
 		local equippedIcon = item:FindFirstChild("EquippedText", true)
 		if equippedIcon then
-			equippedIcon.Visible = player:GetAttribute("Equipped_" .. slot) == entry.name
+			equippedIcon.Visible = equipped
 		end
 
 		local button = item:FindFirstChildOfClass("TextButton") or item:FindFirstChildOfClass("ImageButton")
@@ -252,13 +344,9 @@ end
 local function buildItemList()
 	if #ItemRegistry == 0 then return end
 
-	local listFrame = findTaggedDescendant(lobbyUI, "WeaponList_items")
-	if not listFrame then return end
-
-	local template = findTaggedDescendant(listFrame, "WeaponListTemplate")
-	if not template then return end
-
-	template.Visible = false
+	local listFrame = cachedListFrames["items"]
+	local template = cachedTemplates["items"]
+	if not listFrame or not template then return end
 
 	for _, child in listFrame:GetChildren() do
 		if child ~= template and child:GetAttribute("Generated") then
@@ -273,6 +361,8 @@ local function buildItemList()
 		item:SetAttribute("Generated", true)
 		item:SetAttribute("WeaponName", entry.name)
 		item.Visible = true
+
+		CollectionService:RemoveTag(item, "WeaponListTemplate")
 
 		local nameLabel = item:FindFirstChild("WeaponName", true)
 		if nameLabel then nameLabel.Text = entry.displayName end
@@ -300,20 +390,39 @@ local function buildItemList()
 end
 
 -- ---------------------------------------------------------------------------
--- Init
+-- Debounced rebuild — batches rapid attribute changes into a single rebuild
 -- ---------------------------------------------------------------------------
--- Weapon pages
+local rebuildPending = false
+
+local function scheduleRebuild()
+	if rebuildPending then return end
+	rebuildPending = true
+	task.defer(function()
+		rebuildPending = false
+		for _, slot in { "primary", "secondary" } do
+			buildWeaponList(slot)
+			updateWeaponPanel(slot)
+		end
+		buildItemList()
+		updateItemPanel()
+	end)
+end
+
+-- ---------------------------------------------------------------------------
+-- Init — synchronous, no retries needed (findTaggedDescendant uses HasTag)
+-- ---------------------------------------------------------------------------
 for _, slot in { "primary", "secondary" } do
 	local pageTag = "LoadoutPage" .. slot:sub(1, 1):upper() .. slot:sub(2)
 	setupCurrWeaponPanel(slot, pageTag)
+	cacheListData(slot)
 	buildWeaponList(slot)
 end
 
--- Items page
 setupCurrWeaponPanel("items", "LoadoutPageItems")
+cacheListData("items")
 buildItemList()
 
--- Restore selection for already-equipped weapons/items on join
+-- Restore selection for already-equipped weapons
 for _, slot in { "primary", "secondary" } do
 	local equippedName = player:GetAttribute("Equipped_" .. slot)
 	if equippedName then
@@ -344,8 +453,13 @@ for _, slot in ITEM_SLOTS do
 end
 updateItemPanel()
 
--- Rebuild on attribute changes
+-- Rebuild on attribute changes (equipped slots + unlock state)
 player.AttributeChanged:Connect(function(attr)
+	if string.find(attr, "^Unlocked_") then
+		scheduleRebuild()
+		return
+	end
+
 	if not string.find(attr, "^Equipped_") then return end
 
 	local slot = string.match(attr, "^Equipped_(.+)")

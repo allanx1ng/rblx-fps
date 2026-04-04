@@ -14,7 +14,8 @@
         "ProjectileSpawned": { "$className": "RemoteEvent" },
         "UseHealingPotion": { "$className": "RemoteEvent" },
         "EquipWeapon": { "$className": "RemoteEvent" },
-        "SelectSlot": { "$className": "RemoteEvent" }
+        "SelectSlot": { "$className": "RemoteEvent" },
+        "PurchaseWeapon": { "$className": "RemoteEvent" }
       }
     },
 
@@ -60,6 +61,11 @@
           "$className": "Tool",
           "$properties": { "RequiresHandle": false },
           "HealingPotionScript": { "$path": "src/tools/HealingPotion/HealingPotionScript.client.luau" }
+        },
+        "M9": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/M9/GunScript.client.luau" }
         }
       }
     },
@@ -85,7 +91,8 @@
         "LoadoutTabs": { "$path": "src/gui/LoadoutTabs.client.luau" },
         "WeaponListBuilder": { "$path": "src/gui/WeaponListBuilder.client.luau" },
         "ShopTabs": { "$path": "src/gui/ShopTabs.client.luau" },
-        "SettingsController": { "$path": "src/gui/SettingsController.client.luau" }
+        "SettingsController": { "$path": "src/gui/SettingsController.client.luau" },
+        "PurchasePopupController": { "$path": "src/gui/PurchasePopupController.client.luau" }
       }
     },
 

@@ -1,5 +1,5 @@
 return {
-	name = "TestGun",
+	name = "M9",
 	capacity = 20,
 	damage = 20,
 	range = 999,
@@ -18,7 +18,7 @@ return {
 	reloadTime = 1.0,
 	spareAmmo = 60,  -- 3 extra mags
 
-	viewModelName = "TestGun",
+	viewModelName = "M9",
 	hipOffset = CFrame.new(0.5, -0.4, -1.0),
 	adsDistance = 0.8,
 	equipTime   = 0.35,
