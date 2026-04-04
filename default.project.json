@@ -66,6 +66,46 @@
           "$className": "Tool",
           "$properties": { "RequiresHandle": false },
           "GunScript": { "$path": "src/tools/M9/GunScript.client.luau" }
+        },
+        "HuntingRifle": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/HuntingRifle/GunScript.client.luau" }
+        },
+        "Uzi": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/Uzi/GunScript.client.luau" }
+        },
+        "AK47": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/AK47/GunScript.client.luau" }
+        },
+        "M249": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/M249/GunScript.client.luau" }
+        },
+        "Minigun": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/Minigun/GunScript.client.luau" }
+        },
+        "DMR": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/DMR/GunScript.client.luau" }
+        },
+        "Deagle": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/Deagle/GunScript.client.luau" }
+        },
+        "Shorty": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/Shorty/GunScript.client.luau" }
         }
       }
     },
