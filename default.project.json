@@ -15,7 +15,8 @@
         "UseHealingPotion": { "$className": "RemoteEvent" },
         "EquipWeapon": { "$className": "RemoteEvent" },
         "SelectSlot": { "$className": "RemoteEvent" },
-        "PurchaseWeapon": { "$className": "RemoteEvent" }
+        "PurchaseWeapon": { "$className": "RemoteEvent" },
+        "SpitterSpit": { "$className": "RemoteEvent" }
       }
     },
 

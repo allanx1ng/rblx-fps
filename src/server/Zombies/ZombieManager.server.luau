@@ -19,7 +19,7 @@ assert(Types, "Types folder not found")
 local ZombieTypes = {
     Normal = require(Types:FindFirstChild("Normal")),
     Runner = require(Types:FindFirstChild("Runner")),
-    Tank = require(Types:FindFirstChild("Tank")),
+    Bruiser = require(Types:FindFirstChild("Bruiser")),
     Spitter = require(Types:FindFirstChild("Spitter")),
 }
 

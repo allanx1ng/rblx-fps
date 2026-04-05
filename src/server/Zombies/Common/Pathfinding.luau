@@ -1,4 +1,5 @@
 local PathfindingService = game:GetService("PathfindingService")
+local Players = game:GetService("Players")
 
 local Module = {}
 
@@ -13,45 +14,43 @@ function Module.Initialize(zombieModel)
 		rootPart:SetNetworkOwner(nil)
 	end
 
-	local function findNearestTorso(pos)
-		local list = workspace:GetChildren()
-		local torso = nil
-		local dist = 10000
-
-		for _, temp2 in pairs(list) do
-			if temp2:IsA("Model") and temp2 ~= zombie then
-				local tempRoot = temp2:FindFirstChild("HumanoidRootPart")
-				local human = temp2:FindFirstChild("Humanoid")
-
-				if tempRoot and human and human.Health > 0 then
-					local currentDist = (tempRoot.Position - pos).Magnitude
-					if currentDist < dist then
-						torso = tempRoot
-						dist = currentDist
-					end
-				end
+	local function findNearestPlayer(pos)
+		local nearest = nil
+		local nearestDist = math.huge
+		for _, player in Players:GetPlayers() do
+			local char = player.Character
+			if not char then continue end
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			local hum = char:FindFirstChild("Humanoid")
+			if not hrp or not hum or hum.Health <= 0 then continue end
+			local dist = (hrp.Position - pos).Magnitude
+			if dist < nearestDist then
+				nearest = hrp
+				nearestDist = dist
 			end
 		end
-		return torso
+		return nearest
 	end
+
+	-- Reuse a single Path object instead of creating one every iteration
+	local path = PathfindingService:CreatePath({
+		AgentRadius = 2,
+		AgentHeight = 5,
+		AgentCanJump = true,
+	})
 
 	task.spawn(function()
 		while true do
-			-- A tiny task.wait() prevents crashing but runs instantly.
 			task.wait()
 
 			if rootPart and humanoid then
-				local target = findNearestTorso(rootPart.Position)
+				local target = findNearestPlayer(rootPart.Position)
 
 				if target then
-					-- Save the target's position exactly when we start calculating
 					local targetPosWhenCalculated = target.Position
 
-					local path = PathfindingService:CreatePath({
-						AgentRadius = 2,
-						AgentHeight = 5,
-						AgentCanJump = true,
-					})
+					-- Move toward target while computing so the zombie never idles
+					humanoid:MoveTo(targetPosWhenCalculated)
 
 					local success, errorMessage = pcall(function()
 						path:ComputeAsync(rootPart.Position, targetPosWhenCalculated)

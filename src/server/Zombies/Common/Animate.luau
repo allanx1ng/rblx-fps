@@ -446,7 +446,8 @@ function Module.Initialize(zombieModel)
 	-- main loop
 	task.spawn(function()
 		while Figure.Parent ~= nil do
-			local _, time = task.wait(0.1)
+			task.wait(0.1)
+			local time = os.clock()
 			move(time)
 		end
 	end)

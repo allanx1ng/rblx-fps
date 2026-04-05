@@ -2,8 +2,8 @@ local Module = {}
 
 local Players = game:GetService("Players")
 
-local ATTACK_RANGE = 5
-local ATTACK_COOLDOWN = 1
+local ATTACK_RANGE = 2
+local ATTACK_COOLDOWN = 1.5
 
 function Module.Initialize(zombieModel)
 	local humanoid = zombieModel:WaitForChild("Zombie")
