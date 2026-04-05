@@ -4,7 +4,12 @@ local Debris = game:GetService("Debris")
 -- local DataStoreService = game:GetService("DataStoreService")
 -- local MarketplaceService = game:GetService("MarketplaceService")
 
+local PhysicsService = game:GetService("PhysicsService")
 local ServerStorage = game:GetService("ServerStorage")
+
+-- ViewModel collision group — collides with nothing, used by client viewmodels
+PhysicsService:RegisterCollisionGroup("ViewModel")
+PhysicsService:CollisionGroupSetCollidable("ViewModel", "Default", false)
 
 local PlayerStats = require(ReplicatedStorage.Shared.PlayerStats)
 local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)

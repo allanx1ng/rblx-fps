@@ -1,7 +1,10 @@
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ViewModelController = {}
+
+local VM_COLLISION_GROUP = "ViewModel"
 
 local activeModel    = nil
 local activeConfig   = nil
@@ -67,7 +70,94 @@ function ViewModelController.show(config)
 
 	activeConfig = config
 	activeModel  = template:Clone()
+
+	-- Apply the local player's clothing to the viewmodel arms.
+	-- Shirt/Pants textures require R6 part names (Left Arm, Right Arm, Torso).
+	-- Also apply body colors directly to arm parts as a fallback.
+	local character = Players.LocalPlayer.Character
+	if character then
+		-- Clone clothing objects into the viewmodel
+		local shirt = character:FindFirstChildOfClass("Shirt")
+		if shirt then
+			shirt:Clone().Parent = activeModel
+		end
+
+		local pants = character:FindFirstChildOfClass("Pants")
+		if pants then
+			pants:Clone().Parent = activeModel
+		end
+
+		local bodyColors = character:FindFirstChildOfClass("BodyColors")
+		if bodyColors then
+			bodyColors:Clone().Parent = activeModel
+		end
+
+		-- Apply arm colors directly as a fallback (works for both R6 and R15 characters)
+		local leftArmColor, rightArmColor
+		if bodyColors then
+			leftArmColor = bodyColors.LeftArmColor3
+			rightArmColor = bodyColors.RightArmColor3
+		else
+			-- R15: read color from the actual arm parts
+			local lArm = character:FindFirstChild("LeftLowerArm") or character:FindFirstChild("Left Arm")
+			local rArm = character:FindFirstChild("RightLowerArm") or character:FindFirstChild("Right Arm")
+			leftArmColor = lArm and lArm.Color or Color3.fromRGB(253, 234, 141)
+			rightArmColor = rArm and rArm.Color or Color3.fromRGB(253, 234, 141)
+		end
+
+		for _, part in activeModel:GetDescendants() do
+			if part:IsA("BasePart") then
+				if part.Name == "Left Arm" then
+					part.Color = leftArmColor
+				elseif part.Name == "Right Arm" then
+					part.Color = rightArmColor
+				end
+			end
+		end
+	end
+
+	-- Shirt/Pants rendering requires a Humanoid and a Torso part in the model.
+	if not activeModel:FindFirstChild("Torso") then
+		local fakeTorso = Instance.new("Part")
+		fakeTorso.Name = "Torso"
+		fakeTorso.Size = Vector3.new(0.01, 0.01, 0.01)
+		fakeTorso.Transparency = 1
+		fakeTorso.CanCollide = false
+		fakeTorso.Anchored = true
+		fakeTorso.Parent = activeModel
+	end
+
+	-- Humanoid is needed for shirt/pants rendering
+	local vmHumanoid = activeModel:FindFirstChildOfClass("Humanoid")
+	if not vmHumanoid then
+		vmHumanoid = Instance.new("Humanoid")
+		vmHumanoid.Parent = activeModel
+	end
+	vmHumanoid.MaxHealth = 0
+	vmHumanoid.Health = 0
+	vmHumanoid.EvaluateStateMachine = false
+	vmHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	vmHumanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+
+	-- Assign all parts to the ViewModel collision group so Humanoid can't cause collisions
+	for _, part in activeModel:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CollisionGroup = VM_COLLISION_GROUP
+			part.CanTouch = false
+			part.CanQuery = false
+		end
+	end
+
 	activeModel.Parent = workspace.CurrentCamera
+
+	-- Catch any parts added later (Humanoid can create them)
+	activeModel.DescendantAdded:Connect(function(desc)
+		if desc:IsA("BasePart") then
+			desc.CollisionGroup = VM_COLLISION_GROUP
+			desc.CanTouch = false
+			desc.CanQuery = false
+		end
+	end)
 
 	rootPart = activeModel:FindFirstChild("RootPart")
 	if not rootPart then
@@ -139,6 +229,7 @@ function ViewModelController.show(config)
 		if muzzlePoint then
 			muzzleWorldPos = muzzlePoint:IsA("Attachment") and muzzlePoint.WorldPosition or muzzlePoint.Position
 		end
+
 	end)
 end
 
