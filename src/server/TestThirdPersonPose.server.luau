@@ -10,8 +10,9 @@
 ]]
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local TORSO_YAW = math.rad(45)
+local TORSO_YAW = math.rad(30)
 
 local function setupCharacter(character)
 	local torso = character:WaitForChild("Torso")
@@ -30,7 +31,45 @@ local function setupCharacter(character)
 	local origRootC0 = rootJoint.C0
 	local origNeckC0 = neck.C0
 
-	-- Replace arm Motor6Ds with plain Welds — immune to Animator and SetDesiredAngle
+	-- Posed C1 values
+	local newRightC1 = CFrame.new(-0.461, 1.247, 0)
+		* CFrame.fromOrientation(math.rad(-45), math.rad(90), math.rad(-90))
+	local newLeftC1 = CFrame.new(0.26, 0.68, -0.219)
+		* CFrame.fromOrientation(math.rad(-14.477), math.rad(-123.967), math.rad(105.504))
+
+	-- Gun weld C0: exact value from arm.CFrame:ToObjectSpace(gun.CFrame) on posed rig
+	local GUN_WELD_C0 = CFrame.new(
+		-0.306838989, -0.471988678, -0.319972992,
+		0.965927005, 2.47837738e-06, -0.258816451,
+		0.258815497, 2.47127855e-06, 0.965927958,
+		4.1676617e-06, -1.00000048, 3.81267205e-06
+	)
+
+	-- Clone and weld gun to arm BEFORE applying pose transforms
+	local folder = ReplicatedStorage:FindFirstChild("ThirdPersonWeapons")
+	if not folder then return end
+	local template = folder:FindFirstChild("M9")
+	if not template then return end
+
+	local gun = template:Clone()
+	for _, part in gun:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.Massless = true
+		end
+	end
+
+	local gunWeld = Instance.new("Weld")
+	gunWeld.Name = "GunWeld"
+	gunWeld.Part0 = rightArm
+	gunWeld.Part1 = gun.PrimaryPart
+	gunWeld.C0 = GUN_WELD_C0
+	gunWeld.Parent = rightArm
+	gun.Parent = character
+
+	-- Now apply arm pose and torso rotation — gun follows via weld
 	rightShoulder:Destroy()
 	leftShoulder:Destroy()
 
@@ -39,8 +78,7 @@ local function setupCharacter(character)
 	rightWeld.Part0 = torso
 	rightWeld.Part1 = rightArm
 	rightWeld.C0 = rightC0
-	rightWeld.C1 = CFrame.new(-0.461, 1.247, 0)
-		* CFrame.fromOrientation(math.rad(-45), math.rad(90), math.rad(-90))
+	rightWeld.C1 = newRightC1
 	rightWeld.Parent = torso
 
 	local leftWeld = Instance.new("Weld")
@@ -48,8 +86,7 @@ local function setupCharacter(character)
 	leftWeld.Part0 = torso
 	leftWeld.Part1 = leftArm
 	leftWeld.C0 = leftC0
-	leftWeld.C1 = CFrame.new(0.26, 0.68, -0.219)
-		* CFrame.fromOrientation(math.rad(-14.477), math.rad(-123.967), math.rad(105.504))
+	leftWeld.C1 = newLeftC1
 	leftWeld.Parent = torso
 
 	-- Torso 45° right, head compensates to face forward
