@@ -6,7 +6,7 @@ return {
 	range = 100,
 	fireRate = 0.4,
 
-	baseSpread = 4,
+	baseSpread = 3.5,
 	rapidFireSpread = 2,
 	movementSpread = 2,
 	spreadDecayRate = 8.0,

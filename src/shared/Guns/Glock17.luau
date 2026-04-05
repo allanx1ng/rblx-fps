@@ -5,11 +5,11 @@ return {
 	range = 999,
 	fireRate = 0.1,
 
-	baseSpread = 1.4,
+	baseSpread = 1.0,
 	rapidFireSpread = 2.5,
 	movementSpread = 4.0,
 	spreadDecayRate = 12.0,
-	maxSpread = 9.0,
+	maxSpread = 8.0,
 
 	adsSpeed = 0.15,
 	adsMagnification = 1.1,

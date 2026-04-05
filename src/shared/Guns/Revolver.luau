@@ -6,7 +6,7 @@ return {
 	range = 500,
 	fireRate = 0.4,  -- ~150 RPM
 
-	baseSpread = 1.1,
+	baseSpread = 0.8,
 	rapidFireSpread = 6.0,
 	movementSpread = 5.0,
 	spreadDecayRate = 10.0,
