@@ -13,7 +13,7 @@ return {
 
 	adsSpeed = 0.15,
 	adsMagnification = 1.1,
-	adsSpreadMultiplier = 0.5,
+	adsSpreadMultiplier = 0.6,
 
 	reloadTime = 1.0,
 	spareAmmo = 60,  -- 3 extra mags

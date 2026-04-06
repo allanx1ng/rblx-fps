@@ -6,7 +6,7 @@ return {
 	range = 500,
 	fireRate = 0.4,  -- ~150 RPM
 
-	baseSpread = 0.8,
+	baseSpread = 0.9,
 	rapidFireSpread = 6.0,
 	movementSpread = 5.0,
 	spreadDecayRate = 10.0,
@@ -14,7 +14,7 @@ return {
 
 	adsSpeed = 0.16,
 	adsMagnification = 1.2,
-	adsSpreadMultiplier = 0.5,
+	adsSpreadMultiplier = 0.6,
 
 	reloadTime = 2.5,
 	spareAmmo = 48,
