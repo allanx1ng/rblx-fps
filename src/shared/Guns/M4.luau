@@ -31,4 +31,8 @@ return {
 
 	headshotMultiplier = 2.5,
 	limbMultiplier     = 0.75,
+
+	-- Third-person view model
+	thirdPersonPoseType = "rifle",
+	thirdPersonGunOffset = Vector3.new(0.056, 0.512, -1.591),
 }

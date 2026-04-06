@@ -16,7 +16,10 @@
         "EquipWeapon": { "$className": "RemoteEvent" },
         "SelectSlot": { "$className": "RemoteEvent" },
         "PurchaseWeapon": { "$className": "RemoteEvent" },
-        "SpitterSpit": { "$className": "RemoteEvent" }
+        "SpitterSpit": { "$className": "RemoteEvent" },
+        "GunFired": { "$className": "RemoteEvent" },
+        "GunFiredEffect": { "$className": "RemoteEvent" },
+        "CameraUpdate": { "$className": "UnreliableRemoteEvent" }
       }
     },
 

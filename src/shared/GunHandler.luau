@@ -191,6 +191,9 @@ function GunHandler:fire()
 
 	ViewModelController.onFire()
 
+	-- Notify server so third-person effects (sound, muzzle flash) play for other players
+	ReplicatedStorage.Remotes.GunFired:FireServer()
+
 	if self.config.firingMode == "projectile" then
 		local camera = workspace.CurrentCamera
 		local spreadRad = math.rad(spread)

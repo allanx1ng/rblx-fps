@@ -18,7 +18,7 @@ return {
 		{ name = "Uzi",           displayName = "Uzi",            unlockLevel = 4,  unlockCost = 1,     robuxCost = 0, description = "Blazing fire rate SMG. Spray and pray." },
 		{ name = "Shotgun",       displayName = "Shotgun",        unlockLevel = 5,  unlockCost = 1,     robuxCost = 0, description = "Devastating at close range. 10 pellets per shot." },
 		{ name = "AK47",          displayName = "AK-47",          unlockLevel = 7,  unlockCost = 1,     robuxCost = 0, description = "Heavy assault rifle. High damage, strong recoil." },
-		{ name = "Sniper",        displayName = "Sniper Rifle",   unlockLevel = 8,  unlockCost = 9999,  robuxCost = 0, description = "Bolt-action. Massive damage with 12x scope." },
+		{ name = "Sniper",        displayName = "Sniper Rifle",   unlockLevel = 8,  unlockCost = 995,  robuxCost = 0, description = "Bolt-action. Massive damage with 12x scope." },
 		{ name = "DMR",           displayName = "DMR",            unlockLevel = 10, unlockCost = 1,     robuxCost = 0, description = "Semi-auto marksman rifle. Precise and deadly." },
 		{ name = "HuntingRifle",  displayName = "Hunting Rifle",  unlockLevel = 12, unlockCost = 1,     robuxCost = 0, description = "Lever-action rifle. High damage, slow fire." },
 		{ name = "M249",          displayName = "M249",           unlockLevel = 15, unlockCost = 1,     robuxCost = 0, description = "Belt-fed machine gun. 100 rounds of suppression." },
