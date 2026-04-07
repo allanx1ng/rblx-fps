@@ -25,10 +25,10 @@ local reloadTextLabel
 
 local function fetchGui()
 	gunUI = playerGui:WaitForChild("GunUI")
-	gunNameLabel = gunUI:WaitForChild("GunName")
-	currentAmmoLabel = gunUI:WaitForChild("CurrentAmmo")
-	spareAmmoLabel = gunUI:WaitForChild("SpareAmmo")
-	reloadTextLabel = gunUI:WaitForChild("ReloadText")
+	gunNameLabel = gunUI.Frame:WaitForChild("GunName")
+	currentAmmoLabel = gunUI.Frame:WaitForChild("CurrentAmmo")
+	spareAmmoLabel = gunUI.Frame:WaitForChild("SpareAmmo")
+	reloadTextLabel = gunUI.Frame:WaitForChild("ReloadText")
 end
 
 fetchGui()

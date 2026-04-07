@@ -72,7 +72,7 @@ local function buildBillboard(part: BasePart, entry)
 	
 	billboard.AlwaysOnTop = true
 	billboard.LightInfluence = 0
-	billboard.MaxDistance = 150
+	billboard.MaxDistance = 50
 
 	local nameLabel = Instance.new("TextLabel")
 	nameLabel.Name = "ItemName"

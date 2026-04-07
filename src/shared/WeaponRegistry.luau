@@ -19,10 +19,10 @@ return {
 		{ name = "Shotgun",       displayName = "Shotgun",        unlockLevel = 5,  unlockCost = 1,     robuxCost = 0, description = "Devastating at close range. 10 pellets per shot." },
 		{ name = "AK47",          displayName = "AK-47",          unlockLevel = 7,  unlockCost = 1,     robuxCost = 0, description = "Heavy assault rifle. High damage, strong recoil." },
 		{ name = "Sniper",        displayName = "Sniper Rifle",   unlockLevel = 8,  unlockCost = 995,  robuxCost = 0, description = "Bolt-action. Massive damage with 12x scope." },
-		{ name = "DMR",           displayName = "DMR",            unlockLevel = 10, unlockCost = 1,     robuxCost = 0, description = "Semi-auto marksman rifle. Precise and deadly." },
+		{ name = "DMR",           displayName = "DMR",            unlockLevel = 10, unlockCost = 0,     robuxCost = 500, description = "Semi-auto marksman rifle. Precise and deadly." },
 		{ name = "HuntingRifle",  displayName = "Hunting Rifle",  unlockLevel = 12, unlockCost = 1,     robuxCost = 0, description = "Lever-action rifle. High damage, slow fire." },
 		{ name = "M249",          displayName = "M249",           unlockLevel = 15, unlockCost = 1,     robuxCost = 0, description = "Belt-fed machine gun. 100 rounds of suppression." },
-		{ name = "Minigun",       displayName = "Minigun",        unlockLevel = 20, unlockCost = 0,     robuxCost = 500, description = "Rotary cannon. Insane fire rate, huge mag." },
+		{ name = "Minigun",       displayName = "Minigun",        unlockLevel = 20, unlockCost = 1,     robuxCost = 0, description = "Rotary cannon. Insane fire rate, huge mag." },
 	},
 
 	secondary = {
