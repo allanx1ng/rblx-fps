@@ -136,7 +136,8 @@
         "WeaponListBuilder": { "$path": "src/gui/WeaponListBuilder.client.luau" },
         "ShopTabs": { "$path": "src/gui/ShopTabs.client.luau" },
         "SettingsController": { "$path": "src/gui/SettingsController.client.luau" },
-        "PurchasePopupController": { "$path": "src/gui/PurchasePopupController.client.luau" }
+        "PurchasePopupController": { "$path": "src/gui/PurchasePopupController.client.luau" },
+        "ShopPartClickHandler": { "$path": "src/gui/ShopPartClickHandler.client.luau" }
       }
     },
 
