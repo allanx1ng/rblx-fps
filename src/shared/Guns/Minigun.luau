@@ -1,13 +1,13 @@
 return {
 	name = "Minigun",
 	autoFire = true,
-	capacity = 200,
-	damage = 40,
+	capacity = 300,
+	damage = 50,
 	range = 500,
-	fireRate = 0.04,  -- ~1500 RPM
+	fireRate = 0.03,  -- ~2000 RPM
 
 	baseSpread = 1.5,
-	rapidFireSpread = 0.6,
+	rapidFireSpread = 0.35,
 	movementSpread = 1.0,
 	spreadDecayRate = 8.0,
 	maxSpread = 3.0,
@@ -30,7 +30,7 @@ return {
 	equipTime   = 0.6,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),
 
-	headshotMultiplier = 1.5,
+	headshotMultiplier = 2,
 	limbMultiplier     = 0.8,
 
 	-- Third-person view model

@@ -86,22 +86,42 @@ end
 -- PriceDisplay helper — updates the PriceDisplay frame inside an EquipButton
 -- ---------------------------------------------------------------------------
 local function updatePriceDisplay(equipButton, entry)
-	local priceDisplay = equipButton:FindFirstChild("PriceDisplay")
+	local priceDisplay = equipButton.Parent:FindFirstChild("PriceDisplay")
 	if not priceDisplay then return end
+	local equipLabel = equipButton:FindFirstChild("EquipLabel")
+	local unlockLabel = equipButton:FindFirstChild("UnlockLabel")
 
 	if isUnlocked(entry) then
 		priceDisplay.Visible = false
+		if unlockLabel then
+			unlockLabel.Visible = false
+		end
+
+		if equipLabel then
+			equipLabel.Visible = true
+		end
+		equipButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 		return
 	end
 
 	local cost, _, icon = getEntryCost(entry)
 	priceDisplay.Visible = true
+	equipButton.BackgroundColor3 = Color3.fromHex("00aaff")
 
-	local unlockLabel = priceDisplay:FindFirstChild("UnlockLabel")
-	if unlockLabel then unlockLabel.Text = "Unlock" end
+	if unlockLabel then
+		unlockLabel.Text = "Unlock"
+		unlockLabel.Visible = true
+	end
+	if equipLabel then
+			equipLabel.Visible = false
+	end
 
 	local currencyIcon = priceDisplay:FindFirstChild("CurrencyIcon")
-	if currencyIcon then currencyIcon.Image = icon end
+	if currencyIcon then 
+		currencyIcon.Image = icon
+		currencyIcon.Size = UDim2.fromScale(0.4,0.4)
+		currencyIcon.ScaleType = Enum.ScaleType.Crop
+	end
 
 	local priceAmount = priceDisplay:FindFirstChild("PriceAmount")
 	if priceAmount then priceAmount.Text = tostring(cost) end
@@ -174,11 +194,11 @@ local function updateWeaponPanel(slot)
 	local unlocked = isUnlocked(entry)
 	local equipped = unlocked and player:GetAttribute("Equipped_" .. slot) == entry.name
 
-	if panel.equipButton then
+	if panel.equipButton:FindFirstChild("EquipLabel") then
 		if unlocked then
-			panel.equipButton.Text = equipped and "Unequip" or "Equip"
+			panel.equipButton:FindFirstChild("EquipLabel").Text = equipped and "Unequip" or "Equip"
 		else
-			panel.equipButton.Text = ""
+			panel.equipButton:FindFirstChild("EquipLabel").Text = ""
 		end
 		updatePriceDisplay(panel.equipButton, entry)
 	end

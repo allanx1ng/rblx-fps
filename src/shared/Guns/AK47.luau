@@ -7,10 +7,10 @@ return {
 	fireRate = 0.1,  -- ~600 RPM
 
 	baseSpread = 0.7,
-	rapidFireSpread = 3.0,
-	movementSpread = 7.0,
+	rapidFireSpread = 2.5,
+	movementSpread = 6.0,
 	spreadDecayRate = 13.0,
-	maxSpread = 8.0,
+	maxSpread = 7.5,
 
 	adsSpeed = 0.2,
 	adsMagnification = 2.2,
