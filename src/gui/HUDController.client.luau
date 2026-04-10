@@ -16,6 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local hud = script.Parent
 local lobbyUI = hud.Parent
+lobbyUI.ResetOnSpawn = false
 local main = lobbyUI:FindFirstChild("Main")
 
 -- ---------------------------------------------------------------------------
@@ -154,7 +155,19 @@ updateXP()
 updateWaveStatus()
 
 player.AttributeChanged:Connect(function(attr)
-	if attr == "Gold" then
+	if attr == "InGame" then
+		local inGame = player:GetAttribute("InGame")
+		local visible = not inGame
+		lobbyUI.Enabled = visible
+		-- Child ScreenGuis (e.g. HUD) have independent Enabled state
+		for _, child in lobbyUI:GetDescendants() do
+			if child:IsA("ScreenGui") then
+				child.Enabled = visible
+			end
+		end
+		closeAllPanels()
+		restoreCamera()
+	elseif attr == "Gold" then
 		updateGold()
 	elseif attr == "XP" or attr == "Level" or attr == "XPForNextLevel" then
 		updateXP()
@@ -164,7 +177,11 @@ player.AttributeChanged:Connect(function(attr)
 end)
 
 player.CharacterAdded:Connect(function()
+	restoreCamera()
 	updateGold()
 	updateXP()
 	updateWaveStatus()
 end)
+
+-- Set initial lobby state (camera + cursor)
+restoreCamera()

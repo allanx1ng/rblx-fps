@@ -20,8 +20,11 @@ local KEY_TO_SLOT = {
 	[Enum.KeyCode.Five] = "item2",
 }
 
+local player = Players.LocalPlayer
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
+	if not player:GetAttribute("InGame") then return end
 
 	local slot = KEY_TO_SLOT[input.KeyCode]
 	if slot then

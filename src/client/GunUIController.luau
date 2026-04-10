@@ -43,6 +43,11 @@ local function clearConnections()
 end
 
 local function onToolEquipped(tool)
+	if not player:GetAttribute("InGame") then
+		gunUI.Enabled = false
+		return
+	end
+
 	local ammoValue = tool:FindFirstChild("AmmoValue")
 	local spareAmmoValue = tool:FindFirstChild("SpareAmmoValue")
 	local capacityValue = tool:FindFirstChild("CapacityValue")
@@ -112,5 +117,13 @@ end)
 if player.Character then
 	watchCharacter(player.Character)
 end
+
+-- Hide GunUI immediately when leaving game
+player.AttributeChanged:Connect(function(attr)
+	if attr == "InGame" and not player:GetAttribute("InGame") then
+		clearConnections()
+		if gunUI then gunUI.Enabled = false end
+	end
+end)
 
 return {}

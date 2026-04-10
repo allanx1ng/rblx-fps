@@ -4,11 +4,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
--- Lock camera to first person
--- player.CameraMode = Enum.CameraMode.LockFirstPerson
-
--- Hide default cursor; the Crosshair ScreenGui takes over
-UserInputService.MouseIconEnabled = false
+-- Camera mode and cursor are managed by HUDController's restoreCamera()
+-- based on the InGame attribute — no unconditional overrides here.
 
 -- Disable default Roblox UI
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
@@ -30,3 +27,4 @@ task.spawn(require, script.InventoryController)
 task.spawn(require, script.SpitterProjectileController)
 task.spawn(require, script.Animate)
 task.spawn(require, script.ThirdPersonEffects)
+task.spawn(require, script.InGameHUDController)

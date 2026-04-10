@@ -65,6 +65,15 @@ player.CharacterAdded:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function()
+	if not crosshairGui then return end
+
+	-- Hide crosshair in lobby — only show during gameplay
+	if not player:GetAttribute("InGame") then
+		crosshairGui.Enabled = false
+		return
+	end
+	crosshairGui.Enabled = true
+
 	local camera = workspace.CurrentCamera
 	local fov = camera.FieldOfView
 	local halfHeight = camera.ViewportSize.Y / 2

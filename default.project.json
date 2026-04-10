@@ -127,6 +127,7 @@
     "StarterGui": {
       "LobbyUI": {
         "$className": "ScreenGui",
+        "$properties": { "ResetOnSpawn": false },
         "HUD": {
           "$className": "ScreenGui",
           "HUDController": { "$path": "src/gui/HUDController.client.luau" }

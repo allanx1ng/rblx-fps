@@ -14,14 +14,13 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 RunService.RenderStepped:Connect(function()
-	-- TODO: IMPLEMENT AFTER LOBBY/GAME LOGIC DONE
-	-- if player:GetAttribute("InGame") and player.CameraMode == Enum.CameraMode.LockFirstPerson then
-	local sens = (player:GetAttribute("MouseSensitivity") or 100) / 100
-	local fovScale = player:GetAttribute("FOVSensScale") or 1
-	UserInputService.MouseDeltaSensitivity = sens * fovScale
-	-- else
-	-- 	UserInputService.MouseDeltaSensitivity = 1
-	-- end
+	if player:GetAttribute("InGame") and player.CameraMode == Enum.CameraMode.LockFirstPerson then
+		local sens = (player:GetAttribute("MouseSensitivity") or 100) / 100
+		local fovScale = player:GetAttribute("FOVSensScale") or 1
+		UserInputService.MouseDeltaSensitivity = sens * fovScale
+	else
+		UserInputService.MouseDeltaSensitivity = 1
+	end
 end)
 
 return {}

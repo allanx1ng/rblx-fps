@@ -364,6 +364,7 @@ end
 -- SelectSlot: client presses 1-5, server equips the corresponding slot
 ReplicatedStorage.Remotes.SelectSlot.OnServerEvent:Connect(function(player, slot)
 	if not VALID_SLOTS[slot] then return end
+	if not player:GetAttribute("InGame") then return end
 
 	-- Nothing assigned to this slot
 	local equippedName = player:GetAttribute("Equipped_" .. slot)
@@ -385,10 +386,13 @@ end)
 ReplicatedStorage.Remotes.EquipWeapon.OnServerEvent:Connect(function(player, slot, weaponName)
 	if not VALID_SLOTS[slot] then return end
 
+	local inGame = player:GetAttribute("InGame")
 	local wasActiveSlot = player:GetAttribute("ActiveSlot") == slot
 
-	-- Clear existing tool in that slot
-	clearSlotTool(player, slot)
+	-- Clear existing tool in that slot (only if in-game, otherwise no tool exists)
+	if inGame then
+		clearSlotTool(player, slot)
+	end
 
 	if weaponName == nil then
 		-- Unequip: clear the attribute
@@ -408,13 +412,15 @@ ReplicatedStorage.Remotes.EquipWeapon.OnServerEvent:Connect(function(player, slo
 		if not VALID_ITEMS[weaponName] then return end
 	end
 
-	-- Grant the tool and record it
+	-- Always record the loadout selection
 	player:SetAttribute("Equipped_" .. slot, weaponName)
-	grantTool(player, weaponName, slot)
 
-	-- If the player was holding this slot, auto-equip the new tool into hand
-	if wasActiveSlot then
-		equipSlotTool(player, slot)
+	-- Only grant the actual tool when in-game
+	if inGame then
+		grantTool(player, weaponName, slot)
+		if wasActiveSlot then
+			equipSlotTool(player, slot)
+		end
 	end
 end)
 
@@ -535,8 +541,9 @@ local function regrantEquippedTools(player)
 end
 
 local function onPlayerAdded(player)
-	-- Initialize currency and unlocks
+	-- Initialize currency, unlocks, and game state
 	player:SetAttribute("Gold", DEFAULT_GOLD)
+	player:SetAttribute("InGame", false)
 	initPlayerUnlocks(player)
 
 	-- Auto-equip starter weapon (M9) if nothing equipped yet
@@ -547,7 +554,10 @@ local function onPlayerAdded(player)
 	player.CharacterAdded:Connect(function(character)
 		startHealthRegen(character)
 		-- Re-grant equipped weapons after respawn (Backpack is cleared on spawn)
-		regrantEquippedTools(player)
+		-- Only when in-game; lobby state has no tools in backpack
+		if player:GetAttribute("InGame") then
+			regrantEquippedTools(player)
+		end
 	end)
 
 	-- Handle already-spawned character (e.g. if PlayerAdded fires late)
