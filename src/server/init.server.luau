@@ -14,6 +14,7 @@ PhysicsService:CollisionGroupSetCollidable("ViewModel", "Default", false)
 local PlayerStats = require(ReplicatedStorage.Shared.PlayerStats)
 local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
 local ItemRegistry = require(ReplicatedStorage.Shared.ItemRegistry)
+local LevelConfig = require(ReplicatedStorage.Shared.LevelConfig)
 local Guns = ReplicatedStorage.Shared.Guns
 local ActiveItems = ReplicatedStorage.Shared.Items.Actives
 local WeaponTools = ServerStorage:WaitForChild("WeaponTools")
@@ -175,6 +176,7 @@ Players.PlayerRemoving:Connect(function(player)
 			healingCooldowns[key] = nil
 		end
 	end
+	reconcilingXP[player] = nil
 end)
 
 -- ---------------------------------------------------------------------------
@@ -540,11 +542,62 @@ local function regrantEquippedTools(player)
 	end
 end
 
+-- ---------------------------------------------------------------------------
+-- XP / Leveling — call grantXP(player, amount) from any server script
+-- ---------------------------------------------------------------------------
+local reconcilingXP = {} -- re-entrancy guard per player
+
+-- Shared leveling logic: given raw xp and level, resolve level-ups
+local function resolveLevel(xp, level)
+	while level < LevelConfig.maxLevel do
+		local needed = LevelConfig.xpForLevel(level)
+		if xp < needed then break end
+		xp -= needed
+		level += 1
+	end
+	if level >= LevelConfig.maxLevel then
+		level = LevelConfig.maxLevel
+		xp = 0
+	end
+	return xp, level
+end
+
+local function applyXPAttributes(player, xp, level)
+	reconcilingXP[player] = true
+	player:SetAttribute("Level", level)
+	player:SetAttribute("XP", xp)
+	player:SetAttribute("XPForNextLevel", LevelConfig.xpForLevel(level))
+	reconcilingXP[player] = nil
+end
+
+local function grantXP(player, amount)
+	local level = player:GetAttribute("Level") or LevelConfig.startLevel
+	local xp = (player:GetAttribute("XP") or 0) + amount
+	xp, level = resolveLevel(xp, level)
+	applyXPAttributes(player, xp, level)
+end
+
 local function onPlayerAdded(player)
 	-- Initialize currency, unlocks, and game state
 	player:SetAttribute("Gold", DEFAULT_GOLD)
 	player:SetAttribute("InGame", false)
+	player:SetAttribute("Level", LevelConfig.startLevel)
+	player:SetAttribute("XP", 0)
+	player:SetAttribute("XPForNextLevel", LevelConfig.xpForLevel(LevelConfig.startLevel))
 	initPlayerUnlocks(player)
+
+	-- Auto-level when XP is set manually (e.g. from Studio properties panel)
+	player.AttributeChanged:Connect(function(attr)
+		if attr == "XP" and not reconcilingXP[player] then
+			local xp = player:GetAttribute("XP") or 0
+			local level = player:GetAttribute("Level") or LevelConfig.startLevel
+			local needed = LevelConfig.xpForLevel(level)
+			if xp >= needed then
+				xp, level = resolveLevel(xp, level)
+				applyXPAttributes(player, xp, level)
+			end
+		end
+	end)
 
 	-- Auto-equip starter weapon (M9) if nothing equipped yet
 	if not player:GetAttribute("Equipped_secondary") then
@@ -553,11 +606,13 @@ local function onPlayerAdded(player)
 
 	player.CharacterAdded:Connect(function(character)
 		startHealthRegen(character)
-		-- Re-grant equipped weapons after respawn (Backpack is cleared on spawn)
-		-- Only when in-game; lobby state has no tools in backpack
-		if player:GetAttribute("InGame") then
-			regrantEquippedTools(player)
-		end
+		-- Defer regrant so GameStateManager's CharacterAdded handler runs first
+		-- and clears InGame on death-respawn before we check it here.
+		task.defer(function()
+			if player:GetAttribute("InGame") then
+				regrantEquippedTools(player)
+			end
+		end)
 	end)
 
 	-- Handle already-spawned character (e.g. if PlayerAdded fires late)

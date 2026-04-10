@@ -172,6 +172,8 @@ local function closePopup()
 	currentEntry = nil
 	awaitingResult = false
 	disconnectAll()
+	-- Let HUDController's restoreCamera handle cursor/camera state
+	-- by re-firing the panel logic (a panel is still open behind the popup)
 end
 
 local function openPopup(entry)
@@ -250,6 +252,11 @@ local function openPopup(entry)
 		closePopup()
 	end))
 
+	-- Ensure cursor is free and visible while popup is open, even if the
+	-- player scrolled into first person in Classic camera mode.
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	UserInputService.MouseIconEnabled = true
+
 	popup.Visible = true
 end
 
@@ -276,4 +283,26 @@ if not requestEvent then
 end
 requestEvent.Event:Connect(function(entry)
 	openPopup(entry)
+end)
+
+-- ESC closes the popup
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Escape and popup and popup.Visible then
+		if not awaitingResult then
+			closePopup()
+		end
+	end
+end)
+
+-- Close popup on respawn or InGame change so it doesn't get orphaned
+player.CharacterAdded:Connect(function()
+	if popup and popup.Visible then
+		closePopup()
+	end
+end)
+
+player.AttributeChanged:Connect(function(attr)
+	if attr == "InGame" and popup and popup.Visible then
+		closePopup()
+	end
 end)

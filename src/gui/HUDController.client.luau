@@ -1,14 +1,13 @@
--- Drives the persistent lobby HUD.
+-- Drives the lobby HUD panel toggling and camera/cursor management.
 --
 -- Lives at: StarterGui > LobbyUI > HUD > HUDController (LocalScript)
---
--- HUD elements are optional — missing ones are silently skipped.
--- Panel toggling works regardless of which HUD elements exist.
 --
 -- Panel toggling from other scripts:
 --   lobbyUI:WaitForChild("TogglePanel"):Fire("shop")
 --   lobbyUI:WaitForChild("TogglePanel"):Fire("settings")
 --   lobbyUI:WaitForChild("TogglePanel"):Fire("loadout")
+--
+-- Gold/XP/Level/Wave display has moved to PersistentHUD.
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -109,51 +108,8 @@ wireButton("SettingsButton", "settings")
 wireButton("LoadoutButton", "loadout")
 
 -- ---------------------------------------------------------------------------
--- HUD data updates — all elements optional, silently skipped if missing
+-- InGame state — toggle LobbyUI visibility and camera mode
 -- ---------------------------------------------------------------------------
-local goldLabel  = hud:FindFirstChild("GoldLabel", true)
-local xpBar      = hud:FindFirstChild("XPBar", true)
-local xpFill     = xpBar and xpBar:FindFirstChild("Fill", true)
-local levelLabel = hud:FindFirstChild("LevelLabel", true)
-local xpLabel    = hud:FindFirstChild("XPLabel", true)
-local waveStatus = hud:FindFirstChild("WaveStatus", true)
-
-local function formatNumber(n)
-	local formatted = tostring(math.floor(n))
-	local k
-	while true do
-		formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
-		if k == 0 then break end
-	end
-	return formatted
-end
-
-local function updateGold()
-	if not goldLabel then return end
-	local gold = player:GetAttribute("Gold") or 0
-	goldLabel.Text = formatNumber(gold)
-end
-
-local function updateXP()
-	local xp = player:GetAttribute("XP") or 0
-	local level = player:GetAttribute("Level") or 1
-	local xpForNext = player:GetAttribute("XPForNextLevel") or 1000
-
-	if levelLabel then levelLabel.Text = "Lv. " .. level end
-	if xpLabel then xpLabel.Text = formatNumber(xp) .. " / " .. formatNumber(xpForNext) .. " XP" end
-	if xpFill then xpFill.Size = UDim2.new(math.clamp(xp / xpForNext, 0, 1), 0, 1, 0) end
-end
-
-local function updateWaveStatus()
-	if not waveStatus then return end
-	local waveText = player:GetAttribute("WaveStatus") or "Waiting for players..."
-	waveStatus.Text = waveText
-end
-
-updateGold()
-updateXP()
-updateWaveStatus()
-
 player.AttributeChanged:Connect(function(attr)
 	if attr == "InGame" then
 		local inGame = player:GetAttribute("InGame")
@@ -167,20 +123,11 @@ player.AttributeChanged:Connect(function(attr)
 		end
 		closeAllPanels()
 		restoreCamera()
-	elseif attr == "Gold" then
-		updateGold()
-	elseif attr == "XP" or attr == "Level" or attr == "XPForNextLevel" then
-		updateXP()
-	elseif attr == "WaveStatus" then
-		updateWaveStatus()
 	end
 end)
 
 player.CharacterAdded:Connect(function()
 	restoreCamera()
-	updateGold()
-	updateXP()
-	updateWaveStatus()
 end)
 
 -- Set initial lobby state (camera + cursor)

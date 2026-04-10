@@ -146,14 +146,36 @@ end)
 
 -- ---------------------------------------------------------------------------
 -- Player setup + death handling
+--
+-- On death: keep InGame=true so the in-game HUD stays visible during the
+-- death screen. Only set RespawnLocation to lobby so the respawn lands there.
+-- On respawn (CharacterAdded): detect the pending lobby transition and apply it.
 -- ---------------------------------------------------------------------------
+local function onCharacterDied(player)
+	if not player:GetAttribute("InGame") then return end
+
+	-- Flag that we need to transition to lobby on respawn
+	player:SetAttribute("_DiedInGame", true)
+
+	-- Point respawn at lobby so Roblox spawns them there
+	local spawn = getLobbySpawn()
+	if spawn then
+		player.RespawnLocation = spawn
+	end
+end
+
 local function onCharacterAdded(player, character)
+	-- Wire death handler
 	local humanoid = character:WaitForChild("Humanoid")
 	humanoid.Died:Connect(function()
-		if player:GetAttribute("InGame") then
-			sendToLobby(player)
-		end
+		onCharacterDied(player)
 	end)
+
+	-- If this respawn follows a death-in-game, transition to lobby now
+	if player:GetAttribute("_DiedInGame") then
+		player:SetAttribute("_DiedInGame", nil)
+		sendToLobby(player)
+	end
 end
 
 local function onPlayerAdded(player)

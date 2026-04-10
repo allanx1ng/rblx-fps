@@ -125,6 +125,16 @@
     },
 
     "StarterGui": {
+      "PersistentHUD": {
+        "$className": "ScreenGui",
+        "$properties": { "ResetOnSpawn": false },
+        "PersistentHUDController": { "$path": "src/gui/PersistentHUDController.client.luau" }
+      },
+      "InGameHUD": {
+        "$className": "ScreenGui",
+        "$properties": { "ResetOnSpawn": false },
+        "InGameHUDController": { "$path": "src/gui/InGameHUDController.client.luau" }
+      },
       "LobbyUI": {
         "$className": "ScreenGui",
         "$properties": { "ResetOnSpawn": false },
