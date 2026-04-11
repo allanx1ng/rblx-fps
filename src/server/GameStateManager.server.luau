@@ -1,13 +1,18 @@
--- Server-authoritative game state management.
+-- Server-authoritative game state management + game loop.
 --
--- Owns the InGame attribute and controls the lobby ↔ game lifecycle:
---   • ProximityPrompt on "JoinGame" tagged parts triggers game entry
---   • Death while InGame sends the player back to the lobby
---   • Tools are granted on game entry and stripped on lobby return
+-- Owns the InGame attribute and controls the lobby <-> game lifecycle:
+--   * Game loop: Intermission -> Prep Time -> Wave -> repeat
+--   * ProximityPrompt on "JoinGame" tagged parts only active during Prep Time
+--   * Death while in-game during Wave: if all players dead, wave ends early
+--   * Tools are granted on game entry and stripped on lobby return
 --
 -- Spawn points:
---   LobbySpawn  — SpawnLocation tagged "LobbySpawn" in Workspace
---   MapSpawn    — SpawnLocation named per MapConfig inside Workspace.Maps.{folder}
+--   LobbySpawn  -- SpawnLocation tagged "LobbySpawn" in Workspace
+--   MapSpawn    -- SpawnLocation named per MapConfig inside Workspace.Maps.{folder}
+--
+-- Player attributes set for HUD:
+--   WaveLabel  -- "Intermission" / "Prep Time" / "Wave 1" / etc.
+--   WaveTimer  -- "0:25" formatted countdown string
 
 local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
@@ -16,9 +21,29 @@ local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MapConfig = require(ReplicatedStorage.Shared.MapConfig)
+local WaveSpawner = require(script.Parent:WaitForChild("Zombies"):WaitForChild("WaveSpawner"))
 local WeaponTools = ServerStorage:WaitForChild("WeaponTools")
 
 local VALID_SLOTS = { "primary", "secondary", "item1", "item2" }
+
+-- ---------------------------------------------------------------------------
+-- Game loop constants
+-- ---------------------------------------------------------------------------
+local INTERMISSION_DURATION = 30
+local PREP_DURATION = 20
+local MAX_WAVE = 10
+-- Optional hard timeout per wave (0 disables). When > 0, any wave that still
+-- has zombies alive after WAVE_TIMEOUT seconds will force-clear and advance.
+local WAVE_TIMEOUT = 0
+
+local STATE_WAITING      = "Waiting"
+local STATE_INTERMISSION = "Intermission"
+local STATE_PREP         = "Prep Time"
+local STATE_WAVE         = "Wave"
+
+local gameLoopState      = STATE_WAITING
+local currentLabelDisplay = ""
+local currentTimerDisplay = ""
 
 -- ---------------------------------------------------------------------------
 -- Spawn point resolution
@@ -134,15 +159,226 @@ local function sendToGame(player, mapName)
 end
 
 -- ---------------------------------------------------------------------------
--- ProximityPrompt — "JoinGame" tagged parts
+-- HUD attribute broadcasting
+-- ---------------------------------------------------------------------------
+local function formatTime(seconds)
+	return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
+end
+
+local function broadcastGameState()
+	for _, p in Players:GetPlayers() do
+		p:SetAttribute("WaveLabel", currentLabelDisplay)
+		p:SetAttribute("WaveTimer", currentTimerDisplay)
+	end
+end
+
+-- ---------------------------------------------------------------------------
+-- ProximityPrompt control — only active during Prep Time
+-- ---------------------------------------------------------------------------
+local function setPromptsEnabled(enabled)
+	for _, part in CollectionService:GetTagged("JoinGame") do
+		for _, child in part:GetChildren() do
+			if child:IsA("ProximityPrompt") then
+				child.Enabled = enabled
+			end
+		end
+	end
+end
+
+-- Handle JoinGame parts that stream in late
+CollectionService:GetInstanceAddedSignal("JoinGame"):Connect(function(part)
+	for _, child in part:GetChildren() do
+		if child:IsA("ProximityPrompt") then
+			child.Enabled = (gameLoopState == STATE_PREP)
+		end
+	end
+end)
+
+-- ---------------------------------------------------------------------------
+-- Player queries
+-- ---------------------------------------------------------------------------
+local function getAliveInGamePlayers()
+	local result = {}
+	for _, p in Players:GetPlayers() do
+		if p:GetAttribute("InGame") and not p:GetAttribute("_DiedInGame") then
+			local char = p.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then
+				table.insert(result, p)
+			end
+		end
+	end
+	return result
+end
+
+local function getAliveLobbyPlayers()
+	local result = {}
+	for _, p in Players:GetPlayers() do
+		if not p:GetAttribute("InGame") then
+			local char = p.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then
+				table.insert(result, p)
+			end
+		end
+	end
+	return result
+end
+
+-- ---------------------------------------------------------------------------
+-- ProximityPrompt — "JoinGame" tagged parts (only during Prep Time)
 -- ---------------------------------------------------------------------------
 ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 	local part = prompt.Parent
 	if not part or not CollectionService:HasTag(part, "JoinGame") then return end
 	if player:GetAttribute("InGame") then return end
+	if gameLoopState ~= STATE_PREP then return end
 
 	sendToGame(player, "Default")
 end)
+
+-- ---------------------------------------------------------------------------
+-- Game Loop
+--   Intermission (30s, prompts off)
+--     → auto-teleport alive lobby players into game
+--   For wave in 1..MAX_WAVE:
+--     Prep Time (20s, prompts on — late/respawned players can join)
+--     Wave N (prompts off — spawn zombies, wait for clear or all-dead)
+--   Outcomes:
+--     Defeated (all players dead) → clean zombies, back to Intermission (wave resets)
+--     Victory (wave MAX_WAVE cleared) → clean zombies, back to Intermission
+--     Aborted (no players during prep) → silently back to Intermission
+-- ---------------------------------------------------------------------------
+local function sendAllInGamePlayersToLobby()
+	for _, p in Players:GetPlayers() do
+		if p:GetAttribute("InGame") then
+			p:SetAttribute("_DiedInGame", nil)
+			sendToLobby(p)
+
+			local char = p.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then
+				local spawn = getLobbySpawn()
+				if spawn and char:FindFirstChild("HumanoidRootPart") then
+					char:PivotTo(spawn.CFrame + Vector3.new(0, 3, 0))
+				end
+			end
+		end
+	end
+end
+
+local function runGameLoop()
+	while true do
+		-- Wait for at least one player before starting
+		while #Players:GetPlayers() == 0 do
+			gameLoopState = STATE_WAITING
+			currentLabelDisplay = ""
+			currentTimerDisplay = ""
+			task.wait(1)
+		end
+
+		-- ===================== INTERMISSION =====================
+		gameLoopState = STATE_INTERMISSION
+		setPromptsEnabled(false)
+		currentLabelDisplay = "Intermission"
+
+		for i = INTERMISSION_DURATION, 1, -1 do
+			currentTimerDisplay = formatTime(i)
+			broadcastGameState()
+			task.wait(1)
+		end
+		currentTimerDisplay = "0:00"
+		broadcastGameState()
+
+		-- Auto-teleport all alive lobby players into the game
+		for _, p in getAliveLobbyPlayers() do
+			sendToGame(p, "Default")
+		end
+
+		-- ===================== WAVE LOOP ========================
+		local defeated = false
+		local aborted  = false
+
+		for waveNumber = 1, MAX_WAVE do
+			-- -------- Prep Time (also runs between waves) --------
+			gameLoopState = STATE_PREP
+			setPromptsEnabled(true)
+			currentLabelDisplay = "Wave " .. waveNumber .. " in"
+
+			for i = PREP_DURATION, 1, -1 do
+				currentTimerDisplay = formatTime(i)
+				broadcastGameState()
+				task.wait(1)
+			end
+			currentTimerDisplay = "0:00"
+			setPromptsEnabled(false)
+			broadcastGameState()
+
+			-- No players in game → abort the whole round
+			if #getAliveInGamePlayers() == 0 then
+				aborted = true
+				break
+			end
+
+			-- -------- Wave --------
+			gameLoopState = STATE_WAVE
+			WaveSpawner.startWave(waveNumber)
+			local waveStartTime = tick()
+
+			while true do
+				currentLabelDisplay = "Wave " .. waveNumber
+				currentTimerDisplay = WaveSpawner.getAliveCount() .. " left"
+				broadcastGameState()
+
+				task.wait(1)
+
+				-- Wave cleared
+				if WaveSpawner.areAllDead() then
+					break
+				end
+
+				-- All players dead → defeat
+				if #getAliveInGamePlayers() == 0 then
+					defeated = true
+					break
+				end
+
+				-- Optional hard timeout: force-clear and advance
+				if WAVE_TIMEOUT > 0 and (tick() - waveStartTime) > WAVE_TIMEOUT then
+					WaveSpawner.killAllZombies()
+					break
+				end
+			end
+
+			if defeated then break end
+
+			-- Wave cleared — brief pause showing the result
+			currentLabelDisplay = "Wave " .. waveNumber .. " Cleared!"
+			currentTimerDisplay = ""
+			broadcastGameState()
+			task.wait(2)
+		end
+
+		-- ===================== ROUND END =========================
+		WaveSpawner.killAllZombies()
+
+		if defeated then
+			currentLabelDisplay = "Defeated!"
+			currentTimerDisplay = ""
+			broadcastGameState()
+			task.wait(4)
+		elseif not aborted then
+			currentLabelDisplay = "Victory!"
+			currentTimerDisplay = ""
+			broadcastGameState()
+			task.wait(4)
+		end
+		-- Aborted: skip the announcement and loop straight back to intermission
+
+		-- Send any remaining in-game players back to lobby
+		sendAllInGamePlayersToLobby()
+	end
+end
 
 -- ---------------------------------------------------------------------------
 -- Player setup + death handling
@@ -181,6 +417,10 @@ end
 local function onPlayerAdded(player)
 	player:SetAttribute("InGame", false)
 
+	-- Initialize wave display for this player
+	player:SetAttribute("WaveLabel", currentLabelDisplay)
+	player:SetAttribute("WaveTimer", currentTimerDisplay)
+
 	local spawn = getLobbySpawn()
 	if spawn then
 		player.RespawnLocation = spawn
@@ -201,3 +441,6 @@ Players.PlayerAdded:Connect(onPlayerAdded)
 for _, player in Players:GetPlayers() do
 	task.spawn(onPlayerAdded, player)
 end
+
+-- Start the game loop
+task.spawn(runGameLoop)

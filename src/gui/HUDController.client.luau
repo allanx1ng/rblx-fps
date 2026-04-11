@@ -11,6 +11,9 @@
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local DEFAULT_FOV = 70
 
 local player = Players.LocalPlayer
 local hud = script.Parent
@@ -29,14 +32,32 @@ local panels = {
 	loadout  = main and main:FindFirstChild("LoadoutPanel"),
 }
 
+-- Clears any lingering in-game player state that should not persist into the
+-- lobby (ADS FOV, IsADS flag, FOV sens scale). Called on respawn and on
+-- InGame changes so dying/round-ending while ADS doesn't leave the player
+-- zoomed in and slowed.
+local function clearInGameState()
+	player:SetAttribute("IsADS", false)
+	player:SetAttribute("FOVSensScale", 1)
+	local camera = workspace.CurrentCamera
+	if camera then
+		TweenService:Create(
+			camera,
+			TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ FieldOfView = DEFAULT_FOV }
+		):Play()
+	end
+end
+
 local function restoreCamera()
 	if player:GetAttribute("InGame") then
 		player.CameraMode = Enum.CameraMode.LockFirstPerson
 		UserInputService.MouseIconEnabled = false
 	else
-		-- Lobby: third person, cursor visible
+		-- Lobby: third person, cursor visible, clear any lingering in-game state
 		player.CameraMode = Enum.CameraMode.Classic
 		UserInputService.MouseIconEnabled = true
+		clearInGameState()
 	end
 end
 

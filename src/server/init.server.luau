@@ -584,6 +584,13 @@ local function onPlayerAdded(player)
 	player:SetAttribute("Level", LevelConfig.startLevel)
 	player:SetAttribute("XP", 0)
 	player:SetAttribute("XPForNextLevel", LevelConfig.xpForLevel(LevelConfig.startLevel))
+	-- WaveLabel/WaveTimer are set by GameStateManager; init empty so HUD doesn't show stale data
+	if not player:GetAttribute("WaveLabel") then
+		player:SetAttribute("WaveLabel", "")
+	end
+	if not player:GetAttribute("WaveTimer") then
+		player:SetAttribute("WaveTimer", "")
+	end
 	initPlayerUnlocks(player)
 
 	-- Auto-level when XP is set manually (e.g. from Studio properties panel)

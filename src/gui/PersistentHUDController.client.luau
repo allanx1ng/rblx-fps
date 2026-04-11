@@ -10,7 +10,9 @@
 --       Frame
 --         XPFill  (Frame)               — progress bar fill (width scaled 0-1)
 --         XPLabel (TextLabel)           — xp text ("50/100")
---   WaveStatus (TextLabel)              — wave info
+--   WaveInfo (Frame)
+--     WaveLabel (TextLabel)             — state label ("Intermission", "Wave 1")
+--     WaveTimer (TextLabel)             — countdown ("0:25")
 
 local Players = game:GetService("Players")
 
@@ -24,7 +26,8 @@ local goldLabel  = persistentHUD:FindFirstChild("GoldLabel", true)
 local levelLabel = persistentHUD:FindFirstChild("XP", true)
 local xpFill     = persistentHUD:FindFirstChild("XPFill", true)
 local xpLabel    = persistentHUD:FindFirstChild("XPLabel", true)
-local waveStatus = persistentHUD:FindFirstChild("WaveStatus", true)
+local waveLabel  = persistentHUD:FindFirstChild("WaveLabel", true)
+local waveTimer  = persistentHUD:FindFirstChild("WaveTimer", true)
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -54,9 +57,14 @@ local function updateXP()
 	if xpFill then xpFill.Size = UDim2.new(math.clamp(xp / xpForNext, 0, 1), 0, 1, 0) end
 end
 
-local function updateWaveStatus()
-	if not waveStatus then return end
-	waveStatus.Text = player:GetAttribute("WaveStatus") or ""
+local function updateWaveLabel()
+	if not waveLabel then return end
+	waveLabel.Text = player:GetAttribute("WaveLabel") or ""
+end
+
+local function updateWaveTimer()
+	if not waveTimer then return end
+	waveTimer.Text = player:GetAttribute("WaveTimer") or ""
 end
 
 -- ---------------------------------------------------------------------------
@@ -64,14 +72,17 @@ end
 -- ---------------------------------------------------------------------------
 updateGold()
 updateXP()
-updateWaveStatus()
+updateWaveLabel()
+updateWaveTimer()
 
 player.AttributeChanged:Connect(function(attr)
 	if attr == "Gold" then
 		updateGold()
 	elseif attr == "XP" or attr == "Level" or attr == "XPForNextLevel" then
 		updateXP()
-	elseif attr == "WaveStatus" then
-		updateWaveStatus()
+	elseif attr == "WaveLabel" then
+		updateWaveLabel()
+	elseif attr == "WaveTimer" then
+		updateWaveTimer()
 	end
 end)
