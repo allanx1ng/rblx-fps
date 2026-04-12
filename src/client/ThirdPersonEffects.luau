@@ -88,7 +88,7 @@ GunFiredEffectRemote.OnClientEvent:Connect(function(character)
 
 	-- Flash muzzle lights briefly
 	local lights = {}
-	for _, obj in muzzlePoint:GetDescendants() do
+	for _, obj in muzzlePoint:GetChildren() do
 		if obj:IsA("PointLight") or obj:IsA("SpotLight") then
 			table.insert(lights, obj)
 		end

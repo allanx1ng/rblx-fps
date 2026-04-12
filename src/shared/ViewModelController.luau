@@ -178,7 +178,7 @@ function ViewModelController.show(config)
 
 			muzzleLights = {}
 
-			for _, obj in ipairs(muzzlePoint:GetDescendants()) do
+			for _, obj in ipairs(muzzlePoint:GetChildren()) do
 				if obj:IsA("PointLight") or obj:IsA("SpotLight") then
 					table.insert(muzzleLights, obj)
 				end
