@@ -68,7 +68,7 @@ return {
 
 		FogColor = Color(14, 16, 22),
 		FogStart = 25,
-		FogEnd   = 350,
+		FogEnd   = 300,
 
 		Atmosphere = {
 			Density = 0.5,
@@ -77,6 +77,20 @@ return {
 			Decay   = Color(0,0,0),
 			Glare   = 0.2,
 			Haze    = 0.5,
+		},
+
+		-- Brightness slider range: values at 0% and 100%
+		BrightnessScale = {
+			Min = {
+				Ambient        = Color(0,0,0),
+				OutdoorAmbient = Color(10,10,10),
+				FogColor       = Color(0,0,0),
+			},
+			Max = {
+				Ambient        = Color(120,120,120),
+				OutdoorAmbient = Color(150, 150, 150),
+				FogColor       = Color(40,40,40),
+			},
 		},
 
 		ColorCorrection = {
@@ -109,9 +123,9 @@ return {
 		GlobalShadows           = true,
 		ShadowSoftness          = 0.5,
 
-		-- FogColor = Color(14, 16, 22),
-		-- FogStart = 25,
-		-- FogEnd   = 350,
+		FogColor = Color(20,20,20),
+		FogStart = 25,
+		FogEnd   = 300,
 
 		Atmosphere = {
 			Density = 0.5,
@@ -120,6 +134,20 @@ return {
 			Decay   = Color(0,0,0),
 			Glare   = 0.2,
 			Haze    = 0.2,
+		},
+
+		-- Brightness slider range: values at 0% and 100%
+		BrightnessScale = {
+			Min = {
+				Ambient        = Color(0,0,0),
+				OutdoorAmbient = Color(10,10,10),
+				FogColor       = Color(0,0,0),
+			},
+			Max = {
+				Ambient        = Color(120,120,120),
+				OutdoorAmbient = Color(130,130,130),
+				FogColor       = Color(40,40,40),
+			},
 		},
 
 		ColorCorrection = {

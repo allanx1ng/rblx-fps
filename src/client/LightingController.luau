@@ -31,7 +31,6 @@ local function getOrCreate(className, name)
 	return inst
 end
 
-local atmosphere      = getOrCreate("Atmosphere",      "GameAtmosphere")
 local colorCorrection = getOrCreate("ColorCorrectionEffect", "GameColorCorrection")
 local bloom           = getOrCreate("BloomEffect",     "GameBloom")
 
@@ -58,9 +57,27 @@ local function tweenClockTime(target)
 end
 
 -- ---------------------------------------------------------------------------
--- Apply a preset
+-- Brightness slider — lerps scaled properties between preset Min/Max
+-- ---------------------------------------------------------------------------
+local currentPreset = nil
+
+local function applyBrightness()
+	if not currentPreset or not currentPreset.BrightnessScale then return end
+
+	local alpha = (player:GetAttribute("PlayerBrightness") or 50) / 100
+	local scale = currentPreset.BrightnessScale
+
+	Lighting.Ambient        = scale.Min.Ambient:Lerp(scale.Max.Ambient, alpha)
+	Lighting.OutdoorAmbient = scale.Min.OutdoorAmbient:Lerp(scale.Max.OutdoorAmbient, alpha)
+	Lighting.FogColor       = scale.Min.FogColor:Lerp(scale.Max.FogColor, alpha)
+end
+
+-- ---------------------------------------------------------------------------
+-- Apply a preset (tweened transition between lobby/game)
 -- ---------------------------------------------------------------------------
 local function applyPreset(preset)
+	currentPreset = preset
+
 	-- Non-tweenable or categorical properties: set directly
 	Lighting.GlobalShadows      = preset.GlobalShadows
 	Lighting.GeographicLatitude = preset.GeographicLatitude
@@ -68,8 +85,6 @@ local function applyPreset(preset)
 	tweenClockTime(preset.ClockTime)
 
 	tweenProps(Lighting, {
-		Ambient                  = preset.Ambient,
-		OutdoorAmbient           = preset.OutdoorAmbient,
 		Brightness               = preset.Brightness,
 		ColorShift_Top           = preset.ColorShift_Top,
 		ColorShift_Bottom        = preset.ColorShift_Bottom,
@@ -77,18 +92,8 @@ local function applyPreset(preset)
 		EnvironmentSpecularScale = preset.EnvironmentSpecularScale,
 		ExposureCompensation     = preset.ExposureCompensation,
 		ShadowSoftness           = preset.ShadowSoftness,
-		FogColor                 = preset.FogColor,
 		FogStart                 = preset.FogStart,
 		FogEnd                   = preset.FogEnd,
-	})
-
-	tweenProps(atmosphere, {
-		Density = preset.Atmosphere.Density,
-		Offset  = preset.Atmosphere.Offset,
-		Color   = preset.Atmosphere.Color,
-		Decay   = preset.Atmosphere.Decay,
-		Glare   = preset.Atmosphere.Glare,
-		Haze    = preset.Atmosphere.Haze,
 	})
 
 	tweenProps(colorCorrection, {
@@ -96,13 +101,18 @@ local function applyPreset(preset)
 		Contrast   = preset.ColorCorrection.Contrast,
 		Saturation = preset.ColorCorrection.Saturation,
 		TintColor  = preset.ColorCorrection.TintColor,
+		Enabled    = preset.ColorCorrection.Enabled,
 	})
 
 	tweenProps(bloom, {
 		Intensity = preset.Bloom.Intensity,
 		Size      = preset.Bloom.Size,
 		Threshold = preset.Bloom.Threshold,
+		Enabled   = preset.Bloom.Enabled,
 	})
+
+	-- Apply brightness-scaled properties immediately after tween starts
+	applyBrightness()
 end
 
 -- ---------------------------------------------------------------------------
@@ -114,6 +124,7 @@ local function refresh()
 end
 
 player:GetAttributeChangedSignal("InGame"):Connect(refresh)
+player:GetAttributeChangedSignal("PlayerBrightness"):Connect(applyBrightness)
 refresh()
 
 return {}

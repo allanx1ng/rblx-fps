@@ -6,10 +6,10 @@ return {
 	fireRate = 0.1,
 
 	baseSpread = 1.1,
-	rapidFireSpread = 4,
-	movementSpread = 4.0,
+	rapidFireSpread = 3.5,
+	movementSpread = 3.0,
 	spreadDecayRate = 12.0,
-	maxSpread = 10.0,
+	maxSpread = 8.0,
 
 	adsSpeed = 0.15,
 	adsMagnification = 1.1,

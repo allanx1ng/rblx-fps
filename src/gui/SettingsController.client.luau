@@ -36,6 +36,7 @@ local SLIDERS = {
 	-- SettingSFXVolume        = { attr = "SFXVolume",        default = 100, min = 0, max = 100, suffix = "%" },
 	-- SettingMusicVolume      = { attr = "MusicVolume",      default = 100, min = 0, max = 100, suffix = "%" },
 	SettingMouseSensitivity = { attr = "MouseSensitivity", default = 100, min = 0, max = 100, suffix = "%" },
+	SettingBrightness      = { attr = "PlayerBrightness", default = 50,  min = 0, max = 100, suffix = "%" },
 }
 
 local TOGGLES = {

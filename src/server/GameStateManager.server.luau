@@ -29,7 +29,7 @@ local VALID_SLOTS = { "primary", "secondary", "item1", "item2" }
 -- ---------------------------------------------------------------------------
 -- Game loop constants
 -- ---------------------------------------------------------------------------
-local INTERMISSION_DURATION = 30
+local INTERMISSION_DURATION = 45
 local PREP_DURATION = 20
 local MAX_WAVE = 10
 -- Optional hard timeout per wave (0 disables). When > 0, any wave that still
