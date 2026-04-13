@@ -182,8 +182,9 @@ meleeSwingRemote.OnServerEvent:Connect(function(player)
 	-- Load fresh each swing — tracks don't survive character respawn
 	local anim = Instance.new("Animation")
 	anim.AnimationId = config.slashAnimationId
+	print("[MeleeSwing] Playing slash animation:", config.slashAnimationId, "on", player.Name)
 	local track = animator:LoadAnimation(anim)
-	track.Priority = Enum.AnimationPriority.Action
+	track.Priority = Enum.AnimationPriority.Action4
 	track:Play()
 end)
 

@@ -52,7 +52,7 @@ end
 local function restoreCamera()
 	if player:GetAttribute("InGame") then
 		-- TEMP: Classic camera for third-person melee testing (revert to LockFirstPerson)
-		player.CameraMode = Enum.CameraMode.Classic
+		player.CameraMode = Enum.CameraMode.LockFirstPerson
 		UserInputService.MouseIconEnabled = false
 	else
 		-- Lobby: third person, cursor visible, clear any lingering in-game state

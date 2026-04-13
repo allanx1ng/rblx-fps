@@ -22,6 +22,6 @@ return {
 	swingDuration = 0.4,
 
 	-- Third person
-	slashAnimationId = "rbxassetid://522635514", -- default Roblox slash
+	slashAnimationId = "http://www.roblox.com/asset/?id=129967390", -- default R6 toolslash
 	thirdPersonGripOffset = CFrame.new(0, -1, 0) * CFrame.Angles(math.rad(-90), 0, 0),
 }
