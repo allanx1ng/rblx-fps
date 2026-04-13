@@ -35,6 +35,6 @@ return {
 	},
 
 	melee = {
-		-- Add melee weapons here as they're created
+		{ name = "Sword", displayName = "Sword", unlockLevel = 0, unlockCost = 0, robuxCost = 0, description = "A trusty blade. Slash enemies up close." },
 	},
 }

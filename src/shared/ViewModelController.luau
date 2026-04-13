@@ -16,6 +16,11 @@ local isADS          = false
 local recoilOffset   = CFrame.new()
 local equipProgress  = 1  -- 0 = just equipped (arms down), 1 = fully raised
 
+-- Melee swing state
+local swingOffset    = CFrame.new()
+local swingTime      = -1  -- negative = not swinging
+local swingDuration  = 0.4 -- overridden per swing
+
 -- Effect references, found after cloning
 local muzzlePoint       = nil
 local muzzleWorldPos    = nil  -- cached each RenderStepped to avoid physics-frame drift
@@ -40,6 +45,8 @@ local function destroyActive()
 	adsProgress     = 0
 	equipProgress   = 0
 	recoilOffset    = CFrame.new()
+	swingOffset     = CFrame.new()
+	swingTime       = -1
 	muzzlePoint     = nil
 	muzzleWorldPos  = nil
 	muzzleEmitter   = nil
@@ -223,8 +230,31 @@ function ViewModelController.show(config)
 		-- Recoil recovery
 		recoilOffset = recoilOffset:Lerp(CFrame.new(), dt * activeConfig.recoilRecovery)
 
+		-- Melee swing animation (procedural CFrame arc)
+		if swingTime >= 0 then
+			local alpha = swingTime / swingDuration
+			if alpha <= 0.3 then
+				-- Wind-up: rotate arms back and to the side
+				local t = alpha / 0.3
+				swingOffset = CFrame.Angles(math.rad(-25 * t), math.rad(10 * t), 0)
+			elseif alpha <= 0.6 then
+				-- Slash: rotate forward and down
+				local t = (alpha - 0.3) / 0.3
+				swingOffset = CFrame.Angles(math.rad(-25 + 60 * t), math.rad(10 - 30 * t), 0)
+			else
+				-- Recovery: lerp back to identity
+				local t = (alpha - 0.6) / 0.4
+				swingOffset = swingOffset:Lerp(CFrame.new(), t)
+			end
+			swingTime += dt
+			if swingTime > swingDuration then
+				swingTime = -1
+				swingOffset = CFrame.new()
+			end
+		end
+
 		local baseOffset = activeConfig.hipOffset:Lerp(computedAdsOffset, adsProgress)
-		rootPart.CFrame  = workspace.CurrentCamera.CFrame * baseOffset * recoilOffset * equipLerp
+		rootPart.CFrame  = workspace.CurrentCamera.CFrame * baseOffset * recoilOffset * swingOffset * equipLerp
 
 		if muzzlePoint then
 			muzzleWorldPos = muzzlePoint:IsA("Attachment") and muzzlePoint.WorldPosition or muzzlePoint.Position
@@ -277,6 +307,13 @@ function ViewModelController.onEmpty()
 	if emptySound then
 		emptySound:Play()
 	end
+end
+
+-- Called by MeleeHandler each time the player swings
+function ViewModelController.onSwing(config)
+	swingDuration = config.swingDuration or 0.4
+	swingTime = 0
+	swingOffset = CFrame.new()
 end
 
 function ViewModelController.getMuzzlePosition()

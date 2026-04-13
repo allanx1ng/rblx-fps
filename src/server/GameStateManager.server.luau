@@ -23,13 +23,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MapConfig = require(ReplicatedStorage.Shared.MapConfig)
 local WaveSpawner = require(script.Parent:WaitForChild("Zombies"):WaitForChild("WaveSpawner"))
 local WeaponTools = ServerStorage:WaitForChild("WeaponTools")
+local Melee = ReplicatedStorage.Shared:WaitForChild("Melee")
+local ThirdPersonWeapons = ReplicatedStorage:WaitForChild("ThirdPersonWeapons")
 
-local VALID_SLOTS = { "primary", "secondary", "item1", "item2" }
+local VALID_SLOTS = { "primary", "secondary", "melee", "item1", "item2" }
 
 -- ---------------------------------------------------------------------------
 -- Game loop constants
 -- ---------------------------------------------------------------------------
-local INTERMISSION_DURATION = 45
+local INTERMISSION_DURATION = 30
 local PREP_DURATION = 20
 local MAX_WAVE = 10
 -- Optional hard timeout per wave (0 disables). When > 0, any wave that still
@@ -112,6 +114,25 @@ local function grantEquippedTools(player)
 			if template then
 				local tool = template:Clone()
 				tool:SetAttribute("Slot", slot)
+
+				-- Melee tools need a Handle from ThirdPersonWeapons so Roblox
+				-- handles gripping and the default slash animation automatically.
+				if Melee:FindFirstChild(toolName) then
+					local weaponModel = ThirdPersonWeapons:FindFirstChild(toolName)
+					if weaponModel then
+						local handle = weaponModel:FindFirstChild("Handle")
+						if handle then
+							local h = handle:Clone()
+							h.Name = "Handle"
+							h.Anchored = false
+							h.CanCollide = false
+							h.Massless = true
+							h.Parent = tool
+						end
+					end
+					tool.Grip = CFrame.new(0, 0, -1.7, 0, 0, 1, 1, 0, 0, 0, 1, 0)
+				end
+
 				tool.Parent = backpack
 			end
 		end

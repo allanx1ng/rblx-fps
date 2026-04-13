@@ -5,11 +5,15 @@
 ]]
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Melee = ReplicatedStorage.Shared:WaitForChild("Melee")
 
 local localPlayer = Players.LocalPlayer
 
 local Figure = nil
 local Humanoid = nil
+local toolAnimTrack = nil -- separate track for toolnone so it doesn't conflict with locomotion
 
 local pose = "Standing"
 
@@ -286,6 +290,35 @@ local function setupCharacter(character)
 	Humanoid.FallingDown:Connect(onFallingDown)
 	Humanoid.Seated:Connect(onSeated)
 	Humanoid.PlatformStanding:Connect(onPlatformStanding)
+
+	-- Melee tool hold animation — play toolnone when a melee tool is equipped
+	character.ChildAdded:Connect(function(child)
+		if not child:IsA("Tool") then return end
+		if not Melee:FindFirstChild(child.Name) then return end
+
+		-- Play the default tool hold pose (right arm raised)
+		local animator = Humanoid:FindFirstChildOfClass("Animator")
+		if not animator then
+			animator = Instance.new("Animator")
+			animator.Parent = Humanoid
+		end
+
+		local toolnoneAnim = Instance.new("Animation")
+		toolnoneAnim.AnimationId = "http://www.roblox.com/asset/?id=182393478"
+		toolAnimTrack = animator:LoadAnimation(toolnoneAnim)
+		toolAnimTrack.Priority = Enum.AnimationPriority.Idle
+		toolAnimTrack.Looped = true
+		toolAnimTrack:Play()
+	end)
+
+	character.ChildRemoved:Connect(function(child)
+		if not child:IsA("Tool") then return end
+		if toolAnimTrack then
+			toolAnimTrack:Stop()
+			toolAnimTrack:Destroy()
+			toolAnimTrack = nil
+		end
+	end)
 
 	-- Main loop
 	task.spawn(function()

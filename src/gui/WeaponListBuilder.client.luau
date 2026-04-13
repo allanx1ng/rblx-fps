@@ -419,7 +419,7 @@ local function scheduleRebuild()
 	rebuildPending = true
 	task.defer(function()
 		rebuildPending = false
-		for _, slot in { "primary", "secondary" } do
+		for _, slot in { "primary", "secondary", "melee" } do
 			buildWeaponList(slot)
 			updateWeaponPanel(slot)
 		end
@@ -431,7 +431,7 @@ end
 -- ---------------------------------------------------------------------------
 -- Init — synchronous, no retries needed (findTaggedDescendant uses HasTag)
 -- ---------------------------------------------------------------------------
-for _, slot in { "primary", "secondary" } do
+for _, slot in { "primary", "secondary", "melee" } do
 	local pageTag = "LoadoutPage" .. slot:sub(1, 1):upper() .. slot:sub(2)
 	setupCurrWeaponPanel(slot, pageTag)
 	cacheListData(slot)
@@ -443,7 +443,7 @@ cacheListData("items")
 buildItemList()
 
 -- Restore selection for already-equipped weapons
-for _, slot in { "primary", "secondary" } do
+for _, slot in { "primary", "secondary", "melee" } do
 	local equippedName = player:GetAttribute("Equipped_" .. slot)
 	if equippedName then
 		local weapons = WeaponRegistry[slot]
@@ -485,7 +485,7 @@ player.AttributeChanged:Connect(function(attr)
 	local slot = string.match(attr, "^Equipped_(.+)")
 	if not slot then return end
 
-	if slot == "primary" or slot == "secondary" then
+	if slot == "primary" or slot == "secondary" or slot == "melee" then
 		buildWeaponList(slot)
 		updateWeaponPanel(slot)
 	elseif slot == "item1" or slot == "item2" then

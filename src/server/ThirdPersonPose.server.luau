@@ -11,6 +11,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Guns = ReplicatedStorage.Shared.Guns
+local Melee = ReplicatedStorage.Shared:WaitForChild("Melee")
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local GunFiredRemote = Remotes:WaitForChild("GunFired")
 local GunFiredEffectRemote = Remotes:WaitForChild("GunFiredEffect")
@@ -312,10 +313,15 @@ local function setupCharacter(character)
 		if not child:IsA("Tool") then return end
 
 		local isGun = Guns:FindFirstChild(child.Name) ~= nil
+		local isMelee = Melee:FindFirstChild(child.Name) ~= nil
 		if isGun then
 			applyGunPose(character, child.Name)
+		elseif isMelee then
+			-- Melee: restore Motor6Ds so animations can drive arms.
+			-- Roblox handles the Handle grip and slash animation natively.
+			removeGunPose(character)
 		else
-			-- Non-gun tool equipped (e.g. HealingPotion) — remove gun pose
+			-- Non-weapon tool equipped (e.g. HealingPotion) — remove gun pose
 			removeGunPose(character)
 		end
 	end)
@@ -325,18 +331,20 @@ local function setupCharacter(character)
 
 		-- Defer to handle weapon swap without visual flicker:
 		-- ChildRemoved fires for old tool before ChildAdded fires for new tool.
-		-- By deferring, we check if a new gun is already in the character.
+		-- By deferring, we check if a new weapon is already in the character.
 		task.defer(function()
 			if not character.Parent then return end -- character was destroyed
 
-			-- Check if another gun tool is now equipped
+			-- Check if another weapon tool is now equipped
 			for _, c in character:GetChildren() do
-				if c:IsA("Tool") and Guns:FindFirstChild(c.Name) then
-					return -- another gun is equipped; ChildAdded handles it
+				if c:IsA("Tool") then
+					if Guns:FindFirstChild(c.Name) or Melee:FindFirstChild(c.Name) then
+						return -- another weapon is equipped; ChildAdded handles it
+					end
 				end
 			end
 
-			-- No gun tool found — remove pose
+			-- No weapon tool found — remove pose and weapon model
 			removeGunPose(character)
 		end)
 	end)

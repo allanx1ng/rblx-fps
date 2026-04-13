@@ -19,6 +19,8 @@
         "SpitterSpit": { "$className": "RemoteEvent" },
         "GunFired": { "$className": "RemoteEvent" },
         "GunFiredEffect": { "$className": "RemoteEvent" },
+        "MeleeSwing": { "$className": "RemoteEvent" },
+        "MeleeDamage": { "$className": "RemoteEvent" },
         "CameraUpdate": { "$className": "UnreliableRemoteEvent" }
       }
     },
@@ -110,6 +112,15 @@
           "$className": "Tool",
           "$properties": { "RequiresHandle": false },
           "GunScript": { "$path": "src/tools/Shorty/GunScript.client.luau" }
+        },
+        "Sword": {
+          "$className": "Tool",
+          "$properties": {
+            "RequiresHandle": true,
+            "CanBeDropped": false,
+            "ToolTip": "Sword"
+          },
+          "MeleeScript": { "$path": "src/tools/Sword/MeleeScript.client.luau" }
         }
       }
     },

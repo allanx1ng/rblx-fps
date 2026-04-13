@@ -16,8 +16,15 @@ local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
 local ItemRegistry = require(ReplicatedStorage.Shared.ItemRegistry)
 local LevelConfig = require(ReplicatedStorage.Shared.LevelConfig)
 local Guns = ReplicatedStorage.Shared.Guns
+local Melee = ReplicatedStorage.Shared:WaitForChild("Melee")
 local ActiveItems = ReplicatedStorage.Shared.Items.Actives
 local WeaponTools = ServerStorage:WaitForChild("WeaponTools")
+
+-- DEBUG: list everything in WeaponTools at startup
+print("[WeaponTools] Contents:")
+for _, child in WeaponTools:GetChildren() do
+	print("  -", child.Name, child.ClassName)
+end
 
 -- ---------------------------------------------------------------------------
 -- Damage multipliers by body part name (works for both R6 and R15)
@@ -140,6 +147,78 @@ ReplicatedStorage.Remotes.DealDamage.OnServerEvent:Connect(function(shooter, hit
 end)
 
 -- ---------------------------------------------------------------------------
+-- Melee — swing animation + damage
+-- ---------------------------------------------------------------------------
+local meleeSwingRemote = ReplicatedStorage.Remotes:WaitForChild("MeleeSwing")
+local meleeDamageRemote = ReplicatedStorage.Remotes:WaitForChild("MeleeDamage")
+
+local lastSwingTime = {} -- [player] -> tick
+
+meleeSwingRemote.OnServerEvent:Connect(function(player)
+	local character = player.Character
+	if not character then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return end
+
+	local tool = character:FindFirstChildOfClass("Tool")
+	if not tool then return end
+	local configModule = Melee:FindFirstChild(tool.Name)
+	if not configModule then return end
+	local config = require(configModule)
+
+	-- Rate limit
+	local now = tick()
+	local last = lastSwingTime[player] or 0
+	if (now - last) < config.swingCooldown * 0.8 then return end
+	lastSwingTime[player] = now
+
+	-- Play slash animation on the character's Animator (replicates to all clients)
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = humanoid
+	end
+
+	-- Load fresh each swing — tracks don't survive character respawn
+	local anim = Instance.new("Animation")
+	anim.AnimationId = config.slashAnimationId
+	local track = animator:LoadAnimation(anim)
+	track.Priority = Enum.AnimationPriority.Action
+	track:Play()
+end)
+
+meleeDamageRemote.OnServerEvent:Connect(function(attacker, hitPart)
+	if not hitPart or not hitPart:IsA("BasePart") then return end
+
+	local victimCharacter = hitPart:FindFirstAncestorOfClass("Model")
+	if not victimCharacter then return end
+	local humanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return end
+
+	local victim = Players:GetPlayerFromCharacter(victimCharacter)
+	if victim == attacker then return end
+
+	local attackerCharacter = attacker.Character
+	if not attackerCharacter then return end
+	local attackerHRP = attackerCharacter:FindFirstChild("HumanoidRootPart")
+	local victimHRP = victimCharacter:FindFirstChild("HumanoidRootPart")
+	if not attackerHRP or not victimHRP then return end
+
+	local tool = attackerCharacter:FindFirstChildOfClass("Tool")
+	if not tool then return end
+	local configModule = Melee:FindFirstChild(tool.Name)
+	if not configModule then return end
+	local config = require(configModule)
+
+	-- Distance check
+	local distance = (attackerHRP.Position - victimHRP.Position).Magnitude
+	if distance > config.range * 1.5 then return end
+
+	local damage = config.damage * getMultiplier(hitPart.Name, config)
+	humanoid:TakeDamage(damage)
+end)
+
+-- ---------------------------------------------------------------------------
 -- Healing Potion — server-authoritative healing with cooldown enforcement
 -- ---------------------------------------------------------------------------
 local healingCooldowns = {} -- [player] = lastUseTime per potion name
@@ -177,6 +256,7 @@ Players.PlayerRemoving:Connect(function(player)
 		end
 	end
 	reconcilingXP[player] = nil
+	lastSwingTime[player] = nil
 end)
 
 -- ---------------------------------------------------------------------------
@@ -258,7 +338,7 @@ end)
 -- ---------------------------------------------------------------------------
 -- Slots: primary (1), secondary (2), item1 (4), item2 (5)
 -- ActiveSlot attribute tracks which slot the player currently has in-hand.
-local VALID_SLOTS = { primary = true, secondary = true, item1 = true, item2 = true }
+local VALID_SLOTS = { primary = true, secondary = true, melee = true, item1 = true, item2 = true }
 
 -- ---------------------------------------------------------------------------
 -- Unlock tracking — per-session weapon ownership
@@ -336,6 +416,7 @@ end
 -- Clone a tool from ServerStorage into the player's backpack
 local function grantTool(player, toolName, slot)
 	local template = WeaponTools:FindFirstChild(toolName)
+	print("[grantTool]", toolName, "slot:", slot, "template:", template)
 	if not template then return end
 
 	local backpack = player:FindFirstChild("Backpack")
@@ -343,6 +424,27 @@ local function grantTool(player, toolName, slot)
 
 	local tool = template:Clone()
 	tool:SetAttribute("Slot", slot)
+
+	-- Melee tools: clone Handle from ThirdPersonWeapons so Roblox grips it natively
+	if Melee:FindFirstChild(toolName) then
+		local ThirdPersonWeapons = ReplicatedStorage:FindFirstChild("ThirdPersonWeapons")
+		if ThirdPersonWeapons then
+			local weaponModel = ThirdPersonWeapons:FindFirstChild(toolName)
+			if weaponModel then
+				local handle = weaponModel:FindFirstChild("Handle")
+				if handle then
+					local h = handle:Clone()
+					h.Name = "Handle"
+					h.Anchored = false
+					h.CanCollide = false
+					h.Massless = true
+					h.Parent = tool
+				end
+			end
+		end
+		tool.Grip = CFrame.new(0, 0, -1.7, 0, 0, 1, 1, 0, 0, 0, 1, 0)
+	end
+
 	tool.Parent = backpack
 end
 
@@ -365,14 +467,17 @@ end
 
 -- SelectSlot: client presses 1-5, server equips the corresponding slot
 ReplicatedStorage.Remotes.SelectSlot.OnServerEvent:Connect(function(player, slot)
+	print("[SelectSlot] slot:", slot, "valid:", VALID_SLOTS[slot], "inGame:", player:GetAttribute("InGame"))
 	if not VALID_SLOTS[slot] then return end
 	if not player:GetAttribute("InGame") then return end
 
 	-- Nothing assigned to this slot
 	local equippedName = player:GetAttribute("Equipped_" .. slot)
+	print("[SelectSlot] equippedName:", equippedName)
 	if not equippedName then return end
 
 	local activeSlot = player:GetAttribute("ActiveSlot")
+	print("[SelectSlot] activeSlot:", activeSlot, "requested:", slot)
 
 	if activeSlot == slot then
 		-- Already holding this slot — do nothing (same key press)
@@ -381,6 +486,8 @@ ReplicatedStorage.Remotes.SelectSlot.OnServerEvent:Connect(function(player, slot
 
 	-- Switch to this slot
 	player:SetAttribute("ActiveSlot", slot)
+	local tool = findSlotTool(player, slot)
+	print("[SelectSlot] findSlotTool result:", tool, tool and tool.Name or "nil")
 	equipSlotTool(player, slot)
 end)
 
@@ -406,7 +513,7 @@ ReplicatedStorage.Remotes.EquipWeapon.OnServerEvent:Connect(function(player, slo
 	end
 
 	-- Validate: weapons must match their registry slot, items must be in VALID_ITEMS
-	if slot == "primary" or slot == "secondary" then
+	if slot == "primary" or slot == "secondary" or slot == "melee" then
 		if weaponSlotLookup[weaponName] ~= slot then return end
 		-- Block equip if weapon is not unlocked
 		if not player:GetAttribute("Unlocked_" .. weaponName) then return end
@@ -606,9 +713,12 @@ local function onPlayerAdded(player)
 		end
 	end)
 
-	-- Auto-equip starter weapon (M9) if nothing equipped yet
+	-- Auto-equip starter weapons if nothing equipped yet
 	if not player:GetAttribute("Equipped_secondary") then
 		player:SetAttribute("Equipped_secondary", "M9")
+	end
+	if not player:GetAttribute("Equipped_melee") then
+		player:SetAttribute("Equipped_melee", "Sword")
 	end
 
 	player.CharacterAdded:Connect(function(character)

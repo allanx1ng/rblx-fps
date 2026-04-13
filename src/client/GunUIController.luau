@@ -54,8 +54,12 @@ local function onToolEquipped(tool)
 	local isReloadingValue = tool:FindFirstChild("IsReloadingValue")
 
 	if not ammoValue or not spareAmmoValue or not capacityValue or not isReloadingValue then
-		-- Not a gun with ammo tracking — hide the UI
-		gunUI.Enabled = false
+		-- Not a gun (e.g. melee) — show name and infinity, no ammo tracking
+		gunUI.Enabled = true
+		gunNameLabel.Text = tool.Name
+		currentAmmoLabel.Text = ""
+		spareAmmoLabel.Text = "\u{221E}"
+		reloadTextLabel.Visible = false
 		return
 	end
 

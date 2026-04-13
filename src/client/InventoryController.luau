@@ -4,6 +4,7 @@
 -- Key mapping:
 --   1 = primary
 --   2 = secondary
+--   3 = melee
 --   4 = item1
 --   5 = item2
 
@@ -14,10 +15,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SelectSlot = ReplicatedStorage.Remotes.SelectSlot
 
 local KEY_TO_SLOT = {
-	[Enum.KeyCode.One]  = "primary",
-	[Enum.KeyCode.Two]  = "secondary",
-	[Enum.KeyCode.Four] = "item1",
-	[Enum.KeyCode.Five] = "item2",
+	[Enum.KeyCode.One]   = "primary",
+	[Enum.KeyCode.Two]   = "secondary",
+	[Enum.KeyCode.Three] = "melee",
+	[Enum.KeyCode.Four]  = "item1",
+	[Enum.KeyCode.Five]  = "item2",
 }
 
 local player = Players.LocalPlayer
