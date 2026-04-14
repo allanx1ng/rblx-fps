@@ -11,7 +11,8 @@ return {
 	capacity = 20,
 	damage = 100,
 	range = 800,
-	fireRate = 0.2, 
+	fireRate = 0.2,
+	pierceCount = 4, 
 
 	baseSpread = 0,
 	rapidFireSpread = 0,

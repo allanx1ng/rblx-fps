@@ -27,10 +27,10 @@ function Module.Initialize(zombieModel)
 			end
 		end
 
-		-- Disable collision so corpse doesn't block players
+		-- Disable query so corpse doesn't block raycasts/projectiles
 		for _, part in zombieModel:GetDescendants() do
 			if part:IsA("BasePart") then
-				-- part.CanCollide = false
+				part.CanQuery = false
 			end
 		end
 

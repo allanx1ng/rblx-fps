@@ -23,6 +23,7 @@ return {
 		{ name = "HuntingRifle",  displayName = "Hunting Rifle",  unlockLevel = 12, unlockCost = 1,     robuxCost = 0, description = "Lever-action rifle. High damage, slow fire." },
 		{ name = "M249",          displayName = "M249",           unlockLevel = 15, unlockCost = 1,     robuxCost = 0, description = "Belt-fed machine gun. 100 rounds of suppression." },
 		{ name = "Minigun",       displayName = "Minigun",        unlockLevel = 20, unlockCost = 1,     robuxCost = 0, description = "Rotary cannon. Insane fire rate, huge mag." },
+		{ name = "RPG",           displayName = "RPG",            unlockLevel = 10, unlockCost = 1,     robuxCost = 0, description = "Rocket launcher. Explosive area damage." },
 	},
 
 	secondary = {

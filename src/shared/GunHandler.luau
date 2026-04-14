@@ -131,38 +131,15 @@ function GunHandler:canFire()
 		and (tick() - self.lastFireTime) >= self.config.fireRate
 end
 
-function GunHandler:castRay(spreadDegrees)
-	local camera = workspace.CurrentCamera
-	local spreadRad = math.rad(spreadDegrees)
-
-	-- Random offset within a cone
-	local angle = math.random() * math.pi * 2
-	local offset = math.tan(spreadRad) * math.random()
-	local direction = (camera.CFrame * CFrame.Angles(
-		offset * math.cos(angle),
-		offset * math.sin(angle),
-		0
-	)).LookVector
-
-	local origin = camera.CFrame.Position
-	local range = self.config.range or RAYCAST_DISTANCE
-
-	local debugFolder = workspace:FindFirstChild("DebugMarkers")
-	if not debugFolder then
-		debugFolder = Instance.new("Folder")
-		debugFolder.Name = "DebugMarkers"
-		debugFolder.Parent = workspace
+-- Ensure DebugMarkers folder exists for hit markers
+local function getDebugFolder()
+	local f = workspace:FindFirstChild("DebugMarkers")
+	if not f then
+		f = Instance.new("Folder")
+		f.Name = "DebugMarkers"
+		f.Parent = workspace
 	end
-
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { Players.LocalPlayer.Character, debugFolder, workspace.CurrentCamera }
-
-	local result = workspace:Raycast(origin, direction * range, params)
-	if result and (result.Position - origin).Magnitude < 1 then
-		return nil
-	end
-	return result
+	return f
 end
 
 function GunHandler:fire()
@@ -194,7 +171,25 @@ function GunHandler:fire()
 	-- Notify server so third-person effects (sound, muzzle flash) play for other players
 	ReplicatedStorage.Remotes.GunFired:FireServer()
 
-	if self.config.firingMode == "projectile" then
+	if self.config.firingMode == "explosive_projectile" then
+		local camera = workspace.CurrentCamera
+		local direction = camera.CFrame.LookVector
+		local cameraOrigin = camera.CFrame.Position
+
+		-- Hide the warhead on the first-person view model (restored after reload)
+		local viewModel = ViewModelController.getActiveModel()
+		local warhead = viewModel and viewModel:FindFirstChild("Projectile", true)
+		if warhead then
+			warhead.Transparency = 1
+			for _, child in warhead:GetChildren() do
+				if child:IsA("Light") then child.Enabled = false end
+			end
+		end
+
+		-- Server handles the authoritative projectile (visible to everyone including shooter)
+		ReplicatedStorage.Remotes.FireProjectile:FireServer(cameraOrigin, direction, self.config.name)
+
+	elseif self.config.firingMode == "projectile" then
 		local camera = workspace.CurrentCamera
 		local spreadRad = math.rad(spread)
 		local angle = math.random() * math.pi * 2
@@ -251,18 +246,42 @@ function GunHandler:fire()
 		ReplicatedStorage.Remotes.FireProjectile:FireServer(cameraOrigin, direction, self.config.name)
 	else
 		local pellets = self.config.pelletsPerShot or 1
-		local debugFolder = workspace:FindFirstChild("DebugMarkers")
+		local debugFolder = getDebugFolder()
+		local maxPierceCount = self.config.pierceCount or 0  -- 0 = no pierce (hits first target only)
 
 		for _ = 1, pellets do
-			local result = self:castRay(spread)
-			if result then
-				local hitPart = result.Instance
-				-- If we hit a character part, ask the server to apply damage
-				if hitPart and hitPart:FindFirstAncestorOfClass("Model") then
-					ReplicatedStorage.Remotes.DealDamage:FireServer(hitPart)
-				end
+			-- Piercing raycast: re-cast through each hit character
+			local camera = workspace.CurrentCamera
+			local spreadRad = math.rad(spread)
+			local rAngle = math.random() * math.pi * 2
+			local rOffset = math.tan(spreadRad) * math.random()
+			local direction = (camera.CFrame * CFrame.Angles(
+				rOffset * math.cos(rAngle),
+				rOffset * math.sin(rAngle),
+				0
+			)).LookVector
 
-				-- Debug marker (parented to DebugMarkers folder so raycasts exclude it)
+			local origin = camera.CFrame.Position
+			local range = self.config.range or RAYCAST_DISTANCE
+			local pierced = 0
+			local excludeList = { Players.LocalPlayer.Character, debugFolder, workspace.CurrentCamera }
+
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+
+			while true do
+				params.FilterDescendantsInstances = excludeList
+				local remaining = range - (origin - camera.CFrame.Position).Magnitude
+				if remaining <= 0 then break end
+
+				local result = workspace:Raycast(origin, direction * remaining, params)
+				if not result then break end
+				if (result.Position - camera.CFrame.Position).Magnitude < 1 then break end
+
+				local hitPart = result.Instance
+				local hitModel = hitPart and hitPart:FindFirstAncestorOfClass("Model")
+
+				-- Debug marker
 				local marker = Instance.new("Part")
 				marker.Size = Vector3.new(0.15, 0.15, 0.15)
 				marker.Shape = Enum.PartType.Ball
@@ -274,6 +293,21 @@ function GunHandler:fire()
 				marker.Position = result.Position
 				marker.Parent = debugFolder or workspace
 				game:GetService("Debris"):AddItem(marker, 2)
+
+				if hitModel and hitModel:FindFirstChildOfClass("Humanoid") then
+					-- Pierce damage falloff: linearly decreases from 1.0 to 1/(maxPierceCount+1)
+					local totalHits = maxPierceCount + 1
+					local damageMult = (totalHits - pierced) / totalHits
+					ReplicatedStorage.Remotes.DealDamage:FireServer(hitPart, damageMult)
+					pierced += 1
+					if pierced > maxPierceCount then break end
+					-- Continue ray through this character
+					table.insert(excludeList, hitModel)
+					origin = result.Position + direction * 0.1
+				else
+					-- Hit terrain/wall — stop
+					break
+				end
 			end
 		end
 	end
@@ -298,6 +332,18 @@ function GunHandler:reload()
 		self.isReloadingValue.Value = false
 		self.ammoValue.Value = self.ammo
 		self.spareAmmoValue.Value = self.spareAmmo
+
+		-- Restore warhead visibility on view model after reload
+		if self.config.firingMode == "explosive_projectile" then
+			local viewModel = ViewModelController.getActiveModel()
+			local warhead = viewModel and viewModel:FindFirstChild("Projectile", true)
+			if warhead then
+				warhead.Transparency = 0
+				for _, child in warhead:GetChildren() do
+					if child:IsA("Light") then child.Enabled = true end
+				end
+			end
+		end
 	end)
 end
 

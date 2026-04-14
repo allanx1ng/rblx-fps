@@ -316,6 +316,10 @@ function ViewModelController.onSwing(config)
 	swingOffset = CFrame.new()
 end
 
+function ViewModelController.getActiveModel()
+	return activeModel
+end
+
 function ViewModelController.getMuzzlePosition()
 	return muzzleWorldPos
 end

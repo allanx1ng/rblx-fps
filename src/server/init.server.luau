@@ -5,11 +5,23 @@ local Debris = game:GetService("Debris")
 -- local MarketplaceService = game:GetService("MarketplaceService")
 
 local PhysicsService = game:GetService("PhysicsService")
+local CollectionService = game:GetService("CollectionService")
 local ServerStorage = game:GetService("ServerStorage")
 
 -- ViewModel collision group — collides with nothing, used by client viewmodels
 PhysicsService:RegisterCollisionGroup("ViewModel")
 PhysicsService:CollisionGroupSetCollidable("ViewModel", "Default", false)
+
+-- Player collision group — players are assigned here so barriers can target them
+PhysicsService:RegisterCollisionGroup("PlayerCharacter")
+PhysicsService:CollisionGroupSetCollidable("PlayerCharacter", "Default", true)
+PhysicsService:CollisionGroupSetCollidable("PlayerCharacter", "PlayerCharacter", true)
+
+-- ZombieBarrier — blocks players, lets everything else (zombies) through
+PhysicsService:RegisterCollisionGroup("ZombieBarrier")
+PhysicsService:CollisionGroupSetCollidable("ZombieBarrier", "Default", false)           -- zombies pass through
+PhysicsService:CollisionGroupSetCollidable("ZombieBarrier", "PlayerCharacter", true)    -- players blocked
+PhysicsService:CollisionGroupSetCollidable("ZombieBarrier", "ViewModel", false)
 
 local PlayerStats = require(ReplicatedStorage.Shared.PlayerStats)
 local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
@@ -56,31 +68,89 @@ ReplicatedStorage.Remotes.FireProjectile.OnServerEvent:Connect(function(shooter,
 	local configModule = Guns:FindFirstChild(gunName)
 	if not configModule then return end
 	local config = require(configModule)
-	if config.firingMode ~= "projectile" then return end
+	if config.firingMode ~= "projectile" and config.firingMode ~= "explosive_projectile" then return end
 
 	local speed = config.projectileSpeed or 160
-	local size  = config.projectileSize  or Vector3.new(0.2, 0.2, 3)
-	local color = config.projectileColor or Color3.fromRGB(0, 255, 255)
+	local isExplosive = config.firingMode == "explosive_projectile"
 
-	local projectile = Instance.new("Part")
-	projectile.Name = "Projectile"
-	projectile.Size = size
-	projectile.Color = color
-	projectile.Material = Enum.Material.Neon
-	projectile.Transparency = 0
-	projectile.CanCollide = false
-	projectile.CastShadow = false
-	projectile:SetAttribute("ShooterUserId", shooter.UserId)
-	projectile.CFrame = CFrame.new(origin, origin + direction)
-		* CFrame.new(0, 0, -size.Z / 2)
+	-- Create projectile: clone from ThirdPersonWeapons for explosive, or build from config
+	local projectile
 
-	if config.projectileLight then
-		local light = Instance.new("PointLight")
-		light.Color = color
-		light.Brightness = config.projectileLightBrightness or 1
-		light.Range = config.projectileLightRange or 16
-		light.Parent = projectile
+	if isExplosive then
+		local ThirdPersonWeapons = ReplicatedStorage:FindFirstChild("ThirdPersonWeapons")
+		local weaponTemplate = ThirdPersonWeapons and ThirdPersonWeapons:FindFirstChild(gunName)
+		local projectileTemplate = weaponTemplate and weaponTemplate:FindFirstChild("Projectile", true)
+
+		if projectileTemplate then
+			projectile = projectileTemplate:Clone()
+			projectile.Anchored = false
+			projectile.CanCollide = false
+			projectile.CanTouch = true
+			projectile.CanQuery = false
+			projectile.CastShadow = false
+			for _, child in projectile:GetChildren() do
+				if child:IsA("Weld") or child:IsA("WeldConstraint") then child:Destroy() end
+			end
+		end
+
+		-- Hide warhead on the third-person weapon model
+		for _, child in shooterCharacter:GetChildren() do
+			if child:IsA("Model") and child.Name == gunName then
+				local tpWarhead = child:FindFirstChild("Projectile", true)
+				if tpWarhead then
+					tpWarhead.Transparency = 1
+					for _, c in tpWarhead:GetChildren() do
+						if c:IsA("Light") then c.Enabled = false end
+					end
+					-- Restore after reload
+					task.delay(config.reloadTime, function()
+						if tpWarhead and tpWarhead.Parent then
+							tpWarhead.Transparency = 0
+							for _, c in tpWarhead:GetChildren() do
+								if c:IsA("Light") then c.Enabled = true end
+							end
+						end
+					end)
+				end
+				break
+			end
+		end
 	end
+
+	-- Fallback: create generic projectile part
+	if not projectile then
+		local size  = config.projectileSize  or Vector3.new(0.2, 0.2, 3)
+		local color = config.projectileColor or Color3.fromRGB(0, 255, 255)
+
+		projectile = Instance.new("Part")
+		projectile.Size = size
+		projectile.Color = color
+		projectile.Material = isExplosive and Enum.Material.Metal or Enum.Material.Neon
+		projectile.CanCollide = false
+		projectile.CastShadow = false
+
+		if config.projectileLight then
+			local light = Instance.new("PointLight")
+			light.Color = color
+			light.Brightness = config.projectileLightBrightness or 1
+			light.Range = config.projectileLightRange or 16
+			light.Parent = projectile
+		end
+	end
+
+	projectile.Name = "Projectile"
+	projectile.Transparency = 0
+	projectile.CollisionGroup = "Default"
+	projectile:SetAttribute("ShooterUserId", shooter.UserId)
+	if isExplosive then
+		projectile:SetAttribute("Explosive", true)
+	end
+	-- Orient so the projectile points in direction of travel
+	-- Explosive projectile mesh faces +X when at (0,0,0), so rotate -90° on Y to align with -Z (forward)
+	local meshCorrection = isExplosive and CFrame.Angles(0, math.rad(-90), 0) or CFrame.new()
+	projectile.CFrame = CFrame.new(origin, origin + direction)
+		* CFrame.new(0, 0, -(projectile.Size.Z / 2))
+		* meshCorrection
 
 	local bv = Instance.new("BodyVelocity")
 	bv.Velocity = direction * speed
@@ -91,27 +161,123 @@ ReplicatedStorage.Remotes.FireProjectile.OnServerEvent:Connect(function(shooter,
 	Debris:AddItem(projectile, (config.range or 500) / speed)
 
 	local hasHit = false
-	projectile.Touched:Connect(function(otherPart)
-		if hasHit then return end
-		if not otherPart or not otherPart.Parent then return end
-		if otherPart:IsDescendantOf(shooterCharacter) then return end
+	local armed = false
+	task.delay(0.1, function() armed = true end)
 
-		local victimCharacter = otherPart:FindFirstAncestorOfClass("Model")
-		local humanoid = victimCharacter and victimCharacter:FindFirstChildOfClass("Humanoid")
-		if not humanoid or humanoid.Health <= 0 then return end
+	if isExplosive then
+		-- Explosive: detonate on any surface (not just characters)
+		projectile.Touched:Connect(function(otherPart)
+			if hasHit then return end
+			if not armed then return end
+			if not otherPart or not otherPart.Parent then return end
+			if otherPart:IsDescendantOf(shooterCharacter) then return end
+			if otherPart.Name == "Projectile" then return end
 
-		local victim = Players:GetPlayerFromCharacter(victimCharacter)
-		if victim == shooter then return end
+			hasHit = true
+			local explosionPos = projectile.Position
+			projectile:Destroy()
 
-		hasHit = true
-		projectile:Destroy()
-		humanoid:TakeDamage(config.damage * getMultiplier(otherPart.Name, config))
-	end)
+			-- Create explosion VFX
+			local maxRadius = config.blastTiers[#config.blastTiers].radius
+			local explosion = Instance.new("Explosion")
+			explosion.Position = explosionPos
+			explosion.BlastRadius = maxRadius
+			explosion.BlastPressure = 0              -- no physics knockback
+			explosion.DestroyJointRadiusPercent = 0   -- no joint breaking
+			explosion.Parent = workspace
+
+			-- Explicit explosion sound (Roblox Explosion doesn't reliably play audio)
+			local explosionSound = Instance.new("Sound")
+			explosionSound.SoundId = "rbxasset://sounds/collide.ogg" -- built-in explosion-like sound
+			explosionSound.Volume = 1.5
+			explosionSound.RollOffMaxDistance = 200
+			-- Anchor a small invisible part at the explosion point for spatial audio
+			local soundPart = Instance.new("Part")
+			soundPart.Size = Vector3.new(0.1, 0.1, 0.1)
+			soundPart.Transparency = 1
+			soundPart.Anchored = true
+			soundPart.CanCollide = false
+			soundPart.CanTouch = false
+			soundPart.CanQuery = false
+			soundPart.Position = explosionPos
+			explosionSound.Parent = soundPart
+			soundPart.Parent = workspace
+			explosionSound:Play()
+			Debris:AddItem(soundPart, 3)
+
+			-- Tiered damage — deduplicate per humanoid
+			local damaged = {}
+			explosion.Hit:Connect(function(hitPart, distance)
+				local victimChar = hitPart:FindFirstAncestorOfClass("Model")
+				if not victimChar then return end
+				local humanoid = victimChar:FindFirstChildOfClass("Humanoid")
+				if not humanoid or humanoid.Health <= 0 then return end
+				if damaged[humanoid] then return end
+				-- No friendly fire — only damage NPCs
+				if Players:GetPlayerFromCharacter(victimChar) then return end
+
+				-- Find the highest-damage tier that covers this distance
+				local dmg = 0
+				for _, tier in config.blastTiers do
+					if distance <= tier.radius then
+						dmg = tier.damage
+						break
+					end
+				end
+				if dmg <= 0 then return end
+
+				damaged[humanoid] = true
+				humanoid:TakeDamage(dmg)
+			end)
+		end)
+	else
+		-- Standard projectile: damage on character hit, with optional piercing
+		local maxPierceCount = config.pierceCount or 0
+		local pierced = 0
+		local damagedHumanoids = {}
+
+		projectile.Touched:Connect(function(otherPart)
+			if hasHit then return end
+			if not otherPart or not otherPart.Parent then return end
+			if otherPart:IsDescendantOf(shooterCharacter) then return end
+
+			local victimCharacter = otherPart:FindFirstAncestorOfClass("Model")
+			local humanoid = victimCharacter and victimCharacter:FindFirstChildOfClass("Humanoid")
+
+			if humanoid then
+				if humanoid.Health <= 0 then return end
+				if damagedHumanoids[humanoid] then return end
+
+				-- No friendly fire — only damage NPCs
+				local victim = Players:GetPlayerFromCharacter(victimCharacter)
+				if victim then return end
+
+				-- Pierce damage falloff: linearly decreases from 1.0 to 1/(maxPierceCount+1)
+				local totalHits = maxPierceCount + 1
+				local damageMult = (totalHits - pierced) / totalHits
+				damagedHumanoids[humanoid] = true
+				humanoid:TakeDamage(config.damage * getMultiplier(otherPart.Name, config) * damageMult)
+
+				pierced += 1
+				if pierced > maxPierceCount then
+					hasHit = true
+					projectile:Destroy()
+				end
+			else
+				-- Hit terrain/wall — stop
+				hasHit = true
+				projectile:Destroy()
+			end
+		end)
+	end
 end)
 
-ReplicatedStorage.Remotes.DealDamage.OnServerEvent:Connect(function(shooter, hitPart)
+ReplicatedStorage.Remotes.DealDamage.OnServerEvent:Connect(function(shooter, hitPart, pierceMult)
 	-- Basic sanity checks on the incoming data
 	if not hitPart or not hitPart:IsA("BasePart") then return end
+	-- Clamp pierce multiplier to valid range (untrusted client data)
+	if type(pierceMult) ~= "number" then pierceMult = 1 end
+	pierceMult = math.clamp(pierceMult, 0, 1)
 
 	local victimCharacter = hitPart:FindFirstAncestorOfClass("Model")
 	if not victimCharacter then return end
@@ -119,9 +285,9 @@ ReplicatedStorage.Remotes.DealDamage.OnServerEvent:Connect(function(shooter, hit
 	local humanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 then return end
 
-	-- Prevent self-damage
+	-- No friendly fire — only damage NPCs, not players
 	local victim = Players:GetPlayerFromCharacter(victimCharacter)
-	if victim == shooter then return end
+	if victim then return end
 
 	-- Shooter must be alive with a character
 	local shooterCharacter = shooter.Character
@@ -142,7 +308,7 @@ ReplicatedStorage.Remotes.DealDamage.OnServerEvent:Connect(function(shooter, hit
 	local distance = (shooterHRP.Position - victimHRP.Position).Magnitude
 	if distance > (config.range or 500) * 1.5 then return end
 
-	local damage = config.damage * getMultiplier(hitPart.Name, config)
+	local damage = config.damage * getMultiplier(hitPart.Name, config) * pierceMult
 	humanoid:TakeDamage(damage)
 end)
 
@@ -196,8 +362,9 @@ meleeDamageRemote.OnServerEvent:Connect(function(attacker, hitPart)
 	local humanoid = victimCharacter:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 then return end
 
+	-- No friendly fire — only damage NPCs
 	local victim = Players:GetPlayerFromCharacter(victimCharacter)
-	if victim == attacker then return end
+	if victim then return end
 
 	local attackerCharacter = attacker.Character
 	if not attackerCharacter then return end
@@ -603,6 +770,45 @@ ReplicatedStorage.Remotes.PurchaseWeapon.OnServerEvent:Connect(function(player, 
 end)
 
 -- ---------------------------------------------------------------------------
+-- Assign player characters to the PlayerCharacter collision group
+-- ---------------------------------------------------------------------------
+local function assignPlayerCollisionGroup(character)
+	for _, part in character:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CollisionGroup = "PlayerCharacter"
+		end
+	end
+	-- Catch parts added later (accessories, tools, etc.)
+	character.DescendantAdded:Connect(function(desc)
+		if desc:IsA("BasePart") then
+			desc.CollisionGroup = "PlayerCharacter"
+		end
+	end)
+end
+
+-- ---------------------------------------------------------------------------
+-- Apply ZombieBarrier collision group to tagged parts
+-- ---------------------------------------------------------------------------
+local BARRIER_TAG = "ZombieBarrier"
+
+local function applyBarrierGroup(part)
+	if part:IsA("BasePart") then
+		part.CollisionGroup = "ZombieBarrier"
+	elseif part:IsA("Model") then
+		for _, child in part:GetDescendants() do
+			if child:IsA("BasePart") then
+				child.CollisionGroup = "ZombieBarrier"
+			end
+		end
+	end
+end
+
+for _, obj in CollectionService:GetTagged(BARRIER_TAG) do
+	applyBarrierGroup(obj)
+end
+CollectionService:GetInstanceAddedSignal(BARRIER_TAG):Connect(applyBarrierGroup)
+
+-- ---------------------------------------------------------------------------
 -- Custom health regen — replaces the default Roblox "Health" script
 -- ---------------------------------------------------------------------------
 local function startHealthRegen(character)
@@ -723,6 +929,7 @@ local function onPlayerAdded(player)
 	end
 
 	player.CharacterAdded:Connect(function(character)
+		assignPlayerCollisionGroup(character)
 		startHealthRegen(character)
 		-- Defer regrant so GameStateManager's CharacterAdded handler runs first
 		-- and clears InGame on death-respawn before we check it here.
@@ -735,6 +942,7 @@ local function onPlayerAdded(player)
 
 	-- Handle already-spawned character (e.g. if PlayerAdded fires late)
 	if player.Character then
+		assignPlayerCollisionGroup(player.Character)
 		startHealthRegen(player.Character)
 		regrantEquippedTools(player)
 	end

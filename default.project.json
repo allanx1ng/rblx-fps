@@ -121,6 +121,11 @@
             "ToolTip": "Sword"
           },
           "MeleeScript": { "$path": "src/tools/Sword/MeleeScript.client.luau" }
+        },
+        "RPG": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "GunScript": { "$path": "src/tools/RPG/GunScript.client.luau" }
         }
       }
     },
