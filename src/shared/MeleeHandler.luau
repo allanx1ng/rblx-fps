@@ -92,7 +92,7 @@ function MeleeHandler:startSession()
 	ViewModelController.show(self.config)
 
 	-- Hide the physical tool so it doesn't render in first person
-	-- hideToolParts(self.tool, self.hiddenParts)
+	hideToolParts(self.tool, self.hiddenParts)
 
 	-- Keep parts hidden if new descendants are added (e.g. accessories)
 	table.insert(self.sessionConnections, self.tool.DescendantAdded:Connect(function(desc)

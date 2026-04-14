@@ -175,7 +175,7 @@ function ViewModelController.show(config)
 
 	-- Auto-compute ADS offset from SightPoint position
 	local sightLocal    = getSightLocalPos(rootPart)
-	computedAdsOffset   = CFrame.new(-sightLocal.X, -sightLocal.Y, -config.adsDistance)
+	computedAdsOffset   = CFrame.new(-sightLocal.X, -sightLocal.Y, -(config.adsDistance or 0))
 
 	-- Only cache gun-specific effects (muzzle flash, fire/reload sounds) for guns
 	if config.isGun ~= false then
@@ -224,28 +224,32 @@ function ViewModelController.show(config)
 
 		-- ADS lerp
 		local target = isADS and 1 or 0
-		local step   = dt / activeConfig.adsSpeed
+		local adsSpeed = activeConfig.adsSpeed or 0.25
+		local step   = dt / adsSpeed
 		adsProgress  = math.clamp(adsProgress + math.sign(target - adsProgress) * step, 0, 1)
 
 		-- Recoil recovery
 		recoilOffset = recoilOffset:Lerp(CFrame.new(), dt * activeConfig.recoilRecovery)
 
-		-- Melee swing animation (procedural CFrame arc)
+		-- Melee swing animation — raise up then slash down
 		if swingTime >= 0 then
-			local alpha = swingTime / swingDuration
-			if alpha <= 0.3 then
-				-- Wind-up: rotate arms back and to the side
-				local t = alpha / 0.3
-				swingOffset = CFrame.Angles(math.rad(-25 * t), math.rad(10 * t), 0)
-			elseif alpha <= 0.6 then
-				-- Slash: rotate forward and down
-				local t = (alpha - 0.3) / 0.3
-				swingOffset = CFrame.Angles(math.rad(-25 + 60 * t), math.rad(10 - 30 * t), 0)
+			local alpha = math.clamp(swingTime / swingDuration, 0, 1)
+
+			if alpha <= 0.25 then
+				-- Raise up
+				local t = alpha / 0.25
+				swingOffset = CFrame.Angles(math.rad(30 * t), 0, 0)
+			elseif alpha <= 0.55 then
+				-- Slash down
+				local t = (alpha - 0.25) / 0.3
+				swingOffset = CFrame.Angles(math.rad(30 - 65 * t), 0, 0)
 			else
-				-- Recovery: lerp back to identity
-				local t = (alpha - 0.6) / 0.4
-				swingOffset = swingOffset:Lerp(CFrame.new(), t)
+				-- Recovery back to idle
+				local t = (alpha - 0.55) / 0.45
+				local ease = t * t * (3 - 2 * t)
+				swingOffset = CFrame.Angles(math.rad(-35 * (1 - ease)), 0, 0)
 			end
+
 			swingTime += dt
 			if swingTime > swingDuration then
 				swingTime = -1

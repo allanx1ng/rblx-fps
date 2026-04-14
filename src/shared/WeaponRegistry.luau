@@ -36,6 +36,7 @@ return {
 	},
 
 	melee = {
-		{ name = "Sword", displayName = "Sword", unlockLevel = 0, unlockCost = 0, robuxCost = 0, description = "A trusty blade. Slash enemies up close." },
+		{ name = "Knife", displayName = "Knife", unlockLevel = 0, unlockCost = 0, robuxCost = 0, description = "Fast combat knife. Quick slashes, always ready." },
+		{ name = "Sword", displayName = "Sword", unlockLevel = 3, unlockCost = 1, robuxCost = 0, description = "Heavy blade. Slower swing, higher damage." },
 	},
 }

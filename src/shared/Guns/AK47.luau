@@ -5,6 +5,7 @@ return {
 	damage = 50,
 	range = 700,
 	fireRate = 0.1,  -- ~600 RPM
+	pierceCount = 1,
 
 	baseSpread = 0.7,
 	rapidFireSpread = 2.5,

@@ -925,7 +925,7 @@ local function onPlayerAdded(player)
 		player:SetAttribute("Equipped_secondary", "M9")
 	end
 	if not player:GetAttribute("Equipped_melee") then
-		player:SetAttribute("Equipped_melee", "Sword")
+		player:SetAttribute("Equipped_melee", "Knife")
 	end
 
 	player.CharacterAdded:Connect(function(character)

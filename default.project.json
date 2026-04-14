@@ -113,6 +113,15 @@
           "$properties": { "RequiresHandle": false },
           "GunScript": { "$path": "src/tools/Shorty/GunScript.client.luau" }
         },
+        "Knife": {
+          "$className": "Tool",
+          "$properties": {
+            "RequiresHandle": true,
+            "CanBeDropped": false,
+            "ToolTip": "Knife"
+          },
+          "MeleeScript": { "$path": "src/tools/Knife/MeleeScript.client.luau" }
+        },
         "Sword": {
           "$className": "Tool",
           "$properties": {
