@@ -19,8 +19,8 @@ return {
 	reloadTime = 2.5,
 	spareAmmo = 48,
 
-	recoilKick     = 0.06,
-	recoilRotation = 5.0,
+	recoilKick     = 0.5,
+	recoilRotation = -5.0,
 	recoilRecovery = 8,
 
 	viewModelName = "Revolver",

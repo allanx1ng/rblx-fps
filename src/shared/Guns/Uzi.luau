@@ -19,12 +19,12 @@ return {
 	reloadTime = 1.5,
 	spareAmmo = 160,
 
-	recoilKick     = 0.02,
-	recoilRotation = 1.8,
+	recoilKick     = 0.4,
+	recoilRotation = -1.0,
 	recoilRecovery = 15,
 
 	viewModelName = "Uzi",
-	hipOffset = CFrame.new(0.5, -0.4, -0.9),
+	hipOffset = CFrame.new(0, -0.2, 0),
 	adsDistance = 0.8,
 	equipTime   = 0.3,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),

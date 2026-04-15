@@ -22,11 +22,11 @@ return {
 	spareAmmo = 1000,  -- 6 extra mags
 
 	recoilKick     = 1.0,
-	recoilRotation = 4.5,
+	recoilRotation = -1.5,
 	recoilRecovery = 3.5,
 
 	viewModelName = "Sniper",
-	hipOffset = CFrame.new(0.5, -0.4, -1.0),
+	hipOffset = CFrame.new(0, -0.2, 0),
 	adsDistance = 0,
 	equipTime   = 0.4,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),

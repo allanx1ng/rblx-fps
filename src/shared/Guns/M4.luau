@@ -20,12 +20,12 @@ return {
 	reloadTime = 2.2,
 	spareAmmo = 1000,  -- 6 extra mags
 
-	recoilKick     = 0.03,
-	recoilRotation = 2.0,
+	recoilKick     = 0.3,
+	recoilRotation = -0.5,
 	recoilRecovery = 12,
 
 	viewModelName = "M4",
-	hipOffset = CFrame.new(0.5, -0.4, -1.0),
+	hipOffset = CFrame.new(0, -0.2, 0),
 	adsDistance = -1,
 	equipTime   = 0.4,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),

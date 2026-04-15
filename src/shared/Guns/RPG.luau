@@ -20,12 +20,12 @@ return {
 	reloadTime = 3.0,
 	spareAmmo = 20,
 
-	recoilKick     = 0.06,
-	recoilRotation = 4.0,
+	recoilKick     = 0.6,
+	recoilRotation = -4.0,
 	recoilRecovery = 6,
 
 	viewModelName = "RPG",
-	hipOffset = CFrame.new(0.5, -0.4, -1.0),
+	hipOffset = CFrame.new(0, -0.2, 0),
 	adsDistance = -1,
 	equipTime   = 0.5,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),

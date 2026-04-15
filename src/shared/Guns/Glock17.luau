@@ -25,7 +25,7 @@ return {
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),  -- where arms start: right, below, back
 
 	recoilKick     = 0.08,
-	recoilRotation = 4,
+	recoilRotation = -4,
 	recoilRecovery = 14,
 
 	headshotMultiplier = 1.5,

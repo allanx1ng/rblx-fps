@@ -19,12 +19,12 @@ return {
 	reloadTime = 1.8,
 	spareAmmo = 150,
 
-	recoilKick     = 0.02,
-	recoilRotation = 1.4,
+	recoilKick     = 0.3,
+	recoilRotation = -0.7,
 	recoilRecovery = 14,
 
 	viewModelName = "MP5",
-	hipOffset = CFrame.new(0.5, -0.4, -0.9),
+	hipOffset = CFrame.new(0, -0.2, 0),
 	adsDistance = -1,
 	equipTime   = 0.35,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),

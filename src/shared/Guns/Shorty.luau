@@ -19,12 +19,12 @@ return {
 	reloadTime = 2.0,
 	spareAmmo = 20,
 
-	recoilKick     = 0.18,
-	recoilRotation = 7.0,
+	recoilKick     = 0.5,
+	recoilRotation = -7.0,
 	recoilRecovery = 7,
 
 	viewModelName = "Shorty",
-	hipOffset = CFrame.new(0.5, -0.4, -0.9),
+	hipOffset = CFrame.new(0, -0.2, 0),
 	adsDistance = 0.8,
 	equipTime   = 0.3,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),

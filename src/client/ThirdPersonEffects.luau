@@ -15,43 +15,76 @@ local localPlayer = Players.LocalPlayer
 local GunFiredEffectRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("GunFiredEffect")
 
 -- ---------------------------------------------------------------------------
--- Mute the local player's own TP gun sounds to prevent double audio
+-- Hide and mute the local player's own TP weapon model so it doesn't
+-- clip through the first-person view model.
 -- (Server plays FireSound on the TP model which replicates to all clients)
 -- ---------------------------------------------------------------------------
-local function muteTPGunSounds(character)
-	-- Watch for any model added to the character that has a FireSound
-	-- (third-person weapon models are cloned by the server)
-	character.ChildAdded:Connect(function(child)
-		if not child:IsA("Model") then return end
+local RunService = game:GetService("RunService")
 
-		-- Check if this model has a FireSound (indicates a TP weapon)
+local function hideTPWeaponParts(model)
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = 1
+		end
+	end
+end
+
+local function setupLocalTPHiding(character)
+	local hiddenModels = {}
+
+	local function processChild(child)
+		if not child:IsA("Model") then return end
+		if child:IsA("Tool") or child:IsA("Accessory") then return end
+
+		-- TP weapon models are welded via GunWeld on the Right Arm,
+		-- or can be identified by having a FireSound (server TP weapon)
+		local rightArm = character:FindFirstChild("Right Arm")
+		local isTPWeapon = false
+		if rightArm then
+			local gunWeld = rightArm:FindFirstChild("GunWeld")
+			if gunWeld and gunWeld.Part1 and gunWeld.Part1:IsDescendantOf(child) then
+				isTPWeapon = true
+			end
+		end
+		if not isTPWeapon and child:FindFirstChild("FireSound", true) then
+			isTPWeapon = true
+		end
+		if not isTPWeapon then return end
+
+		-- Mute fire sound
 		local fireSound = child:FindFirstChild("FireSound", true)
 		if fireSound and fireSound:IsA("Sound") then
 			fireSound.Volume = 0
 		end
-
-		-- Also catch sounds added after the model is parented
 		child.DescendantAdded:Connect(function(desc)
 			if desc:IsA("Sound") and desc.Name == "FireSound" then
 				desc.Volume = 0
 			end
 		end)
-	end)
 
-	-- Handle models already present (in case of late setup)
+		-- Hide all parts
+		hideTPWeaponParts(child)
+		table.insert(hiddenModels, child)
+	end
+
+	character.ChildAdded:Connect(processChild)
 	for _, child in character:GetChildren() do
-		if child:IsA("Model") then
-			local fireSound = child:FindFirstChild("FireSound", true)
-			if fireSound and fireSound:IsA("Sound") then
-				fireSound.Volume = 0
+		processChild(child)
+	end
+
+	-- LocalTransparencyModifier resets every render frame, so re-apply
+	RunService.RenderStepped:Connect(function()
+		for _, model in hiddenModels do
+			if model and model.Parent then
+				hideTPWeaponParts(model)
 			end
 		end
-	end
+	end)
 end
 
--- Set up muting for the local player's character
+-- Set up hiding/muting for the local player's character
 local function onCharacterAdded(character)
-	muteTPGunSounds(character)
+	setupLocalTPHiding(character)
 end
 
 if localPlayer.Character then

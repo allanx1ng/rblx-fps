@@ -20,8 +20,8 @@ return {
 	reloadTime = 5.0,
 	spareAmmo = 1000,
 
-	recoilKick     = 0.01,
-	recoilRotation = 1.0,
+	recoilKick     = 0.05,
+	recoilRotation = -1.0,
 	recoilRecovery = 12,
 
 	viewModelName = "Minigun",

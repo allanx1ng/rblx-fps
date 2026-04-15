@@ -19,12 +19,12 @@ return {
 	reloadTime = 2.2,
 	spareAmmo = 1000,  -- 6 extra mags
 
-	recoilKick     = 0.06,
-	recoilRotation = 3.5,
+	recoilKick     = 0.35,
+	recoilRotation = -3.0,
 	recoilRecovery = 12,
 
 	viewModelName = "TestGun3",
-	hipOffset = CFrame.new(0.5, -0.4, -1.0),
+	hipOffset = CFrame.new(0, -0.2, 0),
 	adsDistance = 0.8,
 	equipTime   = 0.4,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),
