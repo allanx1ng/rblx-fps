@@ -52,7 +52,9 @@ end
 local function restoreCamera()
 	if player:GetAttribute("InGame") then
 		-- TEMP: Classic camera for third-person melee testing (revert to LockFirstPerson)
-		player.CameraMode = Enum.CameraMode.Classic
+		-- LOCK FIRST PERSON
+		-- player.CameraMode = Enum.CameraMode.Classic
+		player.CameraMode = Enum.CameraMode.LockFirstPerson
 		UserInputService.MouseIconEnabled = false
 	else
 		-- Lobby: third person, cursor visible, clear any lingering in-game state
@@ -137,7 +139,6 @@ player.AttributeChanged:Connect(function(attr)
 		local inGame = player:GetAttribute("InGame")
 		local visible = not inGame
 		lobbyUI.Enabled = visible
-		-- Child ScreenGuis (e.g. HUD) have independent Enabled state
 		for _, child in lobbyUI:GetDescendants() do
 			if child:IsA("ScreenGui") then
 				child.Enabled = visible

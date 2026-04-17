@@ -15,6 +15,7 @@
 --     SettingFPSCounter so SettingsController auto-wires them.
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CollectionService = game:GetService("CollectionService")
 
@@ -65,10 +66,31 @@ end
 local settingsPanel = inGameHUD:FindFirstChild("InGameSettingsPanel", true)
 local settingsOpen = false
 
+-- Override MouseBehavior every frame while settings are open, because
+-- LockFirstPerson resets it to LockCenter each render step.
+local mouseOverrideConn = nil
+
+local function startMouseOverride()
+	if mouseOverrideConn then return end
+	mouseOverrideConn = RunService.RenderStepped:Connect(function()
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	end)
+end
+
+local function stopMouseOverride()
+	if mouseOverrideConn then
+		mouseOverrideConn:Disconnect()
+		mouseOverrideConn = nil
+	end
+end
+
 local function closeSettingsPanel()
 	if settingsPanel then
 		settingsOpen = false
 		settingsPanel.Visible = false
+		player:SetAttribute("InGameSettingsOpen", false)
+		stopMouseOverride()
+		UserInputService.MouseIconEnabled = false
 	end
 end
 
@@ -76,6 +98,15 @@ local function toggleSettings()
 	if not settingsPanel then return end
 	settingsOpen = not settingsOpen
 	settingsPanel.Visible = settingsOpen
+	player:SetAttribute("InGameSettingsOpen", settingsOpen)
+
+	if settingsOpen then
+		startMouseOverride()
+		UserInputService.MouseIconEnabled = true
+	else
+		stopMouseOverride()
+		UserInputService.MouseIconEnabled = false
+	end
 end
 
 for _, btn in CollectionService:GetTagged("InGameSettingsButton") do
@@ -89,9 +120,12 @@ CollectionService:GetInstanceAddedSignal("InGameSettingsButton"):Connect(functio
 	end
 end)
 
-UserInputService.InputBegan:Connect(function(input)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
 	if input.KeyCode == Enum.KeyCode.Escape and settingsOpen then
 		closeSettingsPanel()
+	elseif input.KeyCode == Enum.KeyCode.B then
+		toggleSettings()
 	end
 end)
 

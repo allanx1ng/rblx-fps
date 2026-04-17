@@ -1,29 +1,27 @@
+-- Client-side handler for the SpeedPill active item.
+-- Mirrors the HealingPotionHandler pattern: equip/unequip viewmodel, use on click.
+
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local ViewModelController = require(script.Parent.ViewModelController)
 
-local HealingPotionHandler = {}
-HealingPotionHandler.__index = HealingPotionHandler
+local SpeedPillHandler = {}
+SpeedPillHandler.__index = SpeedPillHandler
 
-function HealingPotionHandler.new(tool, config)
-	local self = setmetatable({}, HealingPotionHandler)
-
+function SpeedPillHandler.new(tool, config)
+	local self = setmetatable({}, SpeedPillHandler)
 	self.tool = tool
 	self.config = config
 	self.lastUseTime = 0
 	self.sessionConnections = {}
 
-	-- BoolValue so UI scripts can read cooldown state
 	local cooldownValue = Instance.new("BoolValue")
 	cooldownValue.Name = "OnCooldown"
 	cooldownValue.Value = false
 	cooldownValue.Parent = tool
 	self.cooldownValue = cooldownValue
 
-	-- NumberValue so GunUIController can display a countdown
 	local cooldownEndTime = Instance.new("NumberValue")
 	cooldownEndTime.Name = "CooldownEndTime"
 	cooldownEndTime.Value = 0
@@ -33,45 +31,41 @@ function HealingPotionHandler.new(tool, config)
 	return self
 end
 
-function HealingPotionHandler:canUse()
+function SpeedPillHandler:canUse()
 	if (tick() - self.lastUseTime) < self.config.cooldown then return false end
 
-	local character = Players.LocalPlayer.Character
+	local player = Players.LocalPlayer
+	if player:GetAttribute("SpeedPillActive") then return false end
+
+	local character = player.Character
 	if not character then return false end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 then return false end
 
-	-- Don't use if already at full health
-	if humanoid.Health >= humanoid.MaxHealth then return false end
-
 	return true
 end
 
-function HealingPotionHandler:use()
+function SpeedPillHandler:use()
 	if not self:canUse() then return end
 
 	self.lastUseTime = tick()
 	self.cooldownValue.Value = true
 	self.cooldownEndTime.Value = tick() + self.config.cooldown
 
-	-- Play drink sound if the viewmodel has one
 	local activeModel = workspace.CurrentCamera:FindFirstChild(self.config.viewModelName)
 	if activeModel then
 		local drinkSound = activeModel:FindFirstChild("DrinkSound")
 		if drinkSound then drinkSound:Play() end
 	end
 
-	-- Ask the server to actually heal us
-	ReplicatedStorage.Remotes.UseHealingPotion:FireServer(self.config.name)
+	ReplicatedStorage.Remotes.UseSpeedPill:FireServer()
 
-	-- Start cooldown timer
 	task.delay(self.config.cooldown, function()
 		self.cooldownValue.Value = false
 	end)
 end
 
-function HealingPotionHandler:startSession()
-	-- Show the healing potion viewmodel
+function SpeedPillHandler:startSession()
 	ViewModelController.show({
 		isGun = false,
 		viewModelName = self.config.viewModelName,
@@ -86,7 +80,7 @@ function HealingPotionHandler:startSession()
 	})
 end
 
-function HealingPotionHandler:endSession()
+function SpeedPillHandler:endSession()
 	for _, conn in self.sessionConnections do
 		conn:Disconnect()
 	end
@@ -94,7 +88,7 @@ function HealingPotionHandler:endSession()
 	ViewModelController.hide()
 end
 
-function HealingPotionHandler:init()
+function SpeedPillHandler:init()
 	self.tool.Equipped:Connect(function()
 		self:startSession()
 	end)
@@ -103,7 +97,6 @@ function HealingPotionHandler:init()
 		self:endSession()
 	end)
 
-	-- Use potion on click
 	self.tool.Activated:Connect(function()
 		self:use()
 	end)
@@ -113,4 +106,4 @@ function HealingPotionHandler:init()
 	end)
 end
 
-return HealingPotionHandler
+return SpeedPillHandler

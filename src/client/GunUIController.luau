@@ -9,9 +9,10 @@
 --     GunName     (TextLabel)
 --     CurrentAmmo (TextLabel)  -- displays "12/30"
 --     SpareAmmo   (TextLabel)  -- displays "60"
---     ReloadText  (TextLabel)  -- shown only while reloading
+--     ReloadText  (TextLabel)  -- shown while reloading or during item cooldown
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -34,12 +35,17 @@ end
 fetchGui()
 
 local activeConnections = {}
+local cooldownHeartbeat = nil  -- Heartbeat connection for cooldown countdown
 
 local function clearConnections()
 	for _, conn in activeConnections do
 		conn:Disconnect()
 	end
 	activeConnections = {}
+	if cooldownHeartbeat then
+		cooldownHeartbeat:Disconnect()
+		cooldownHeartbeat = nil
+	end
 end
 
 local function onToolEquipped(tool)
@@ -53,13 +59,66 @@ local function onToolEquipped(tool)
 	local capacityValue = tool:FindFirstChild("CapacityValue")
 	local isReloadingValue = tool:FindFirstChild("IsReloadingValue")
 
+	-- Item/non-gun tool detection
+	local onCooldownValue = tool:FindFirstChild("OnCooldown")
+	local cooldownEndValue = tool:FindFirstChild("CooldownEndTime")
+
 	if not ammoValue or not spareAmmoValue or not capacityValue or not isReloadingValue then
-		-- Not a gun (e.g. melee) — show name and infinity, no ammo tracking
+		-- Not a gun (e.g. melee, item) — show name and infinity, no ammo tracking
 		gunUI.Enabled = true
 		gunNameLabel.Text = tool.Name
 		currentAmmoLabel.Text = ""
 		spareAmmoLabel.Text = "\u{221E}"
 		reloadTextLabel.Visible = false
+
+		-- If this tool has cooldown support, wire up the countdown display
+		if onCooldownValue and cooldownEndValue then
+			local function updateCooldownDisplay()
+				if onCooldownValue.Value then
+					local remaining = cooldownEndValue.Value - tick()
+					if remaining > 0 then
+						reloadTextLabel.Text = string.format("Cooldown: %.1fs", remaining)
+						reloadTextLabel.Visible = true
+
+						-- Start per-frame countdown if not already running
+						if not cooldownHeartbeat then
+							cooldownHeartbeat = RunService.Heartbeat:Connect(function()
+								if not onCooldownValue.Value then
+									reloadTextLabel.Visible = false
+									if cooldownHeartbeat then
+										cooldownHeartbeat:Disconnect()
+										cooldownHeartbeat = nil
+									end
+									return
+								end
+								local r = cooldownEndValue.Value - tick()
+								if r > 0 then
+									reloadTextLabel.Text = string.format("Cooldown: %.1fs", r)
+								else
+									reloadTextLabel.Visible = false
+									if cooldownHeartbeat then
+										cooldownHeartbeat:Disconnect()
+										cooldownHeartbeat = nil
+									end
+								end
+							end)
+						end
+					else
+						reloadTextLabel.Visible = false
+					end
+				else
+					reloadTextLabel.Visible = false
+					if cooldownHeartbeat then
+						cooldownHeartbeat:Disconnect()
+						cooldownHeartbeat = nil
+					end
+				end
+			end
+
+			updateCooldownDisplay()
+			table.insert(activeConnections, onCooldownValue.Changed:Connect(updateCooldownDisplay))
+		end
+
 		return
 	end
 
@@ -75,6 +134,7 @@ local function onToolEquipped(tool)
 	end
 
 	local function updateReloading()
+		reloadTextLabel.Text = "Reloading"
 		reloadTextLabel.Visible = isReloadingValue.Value
 	end
 

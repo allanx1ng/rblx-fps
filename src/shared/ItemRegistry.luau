@@ -10,5 +10,6 @@
 --   description  — short flavour text for the UI
 
 return {
-	{ name = "HealingPotion", displayName = "Healing Potion", unlockLevel = 0, unlockCost = 0, description = "Instantly heal 50 HP. 10 second cooldown." },
+	{ name = "HealingPotion", displayName = "Healing Potion", unlockLevel = 0, unlockCost = 0, robuxCost = 0, description = "Instantly heal 50 HP. 10 second cooldown." },
+	{ name = "SpeedPill",     displayName = "Speed Pill",     unlockLevel = 3, unlockCost = 300, robuxCost = 0, description = "Infinite stamina and +100% move speed for 20 seconds." },
 }

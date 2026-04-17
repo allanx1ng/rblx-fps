@@ -143,6 +143,7 @@ local function getDebugFolder()
 end
 
 function GunHandler:fire()
+	if Players.LocalPlayer:GetAttribute("InGameSettingsOpen") then return nil end
 	local character = Players.LocalPlayer.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 then return nil end

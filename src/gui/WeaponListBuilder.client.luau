@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
 local ItemRegistry = require(ReplicatedStorage.Shared.ItemRegistry)
+local BuffRegistry = require(ReplicatedStorage.Shared.BuffRegistry)
 
 local lobbyUI = script:FindFirstAncestor("LobbyUI")
 local EquipWeapon = ReplicatedStorage.Remotes.EquipWeapon
@@ -61,6 +62,7 @@ end
 -- Item slot helpers
 -- ---------------------------------------------------------------------------
 local ITEM_SLOTS = { "item1", "item2" }
+local BUFF_SLOTS = { "buff1", "buff2" }
 
 -- Find which item slot (if any) has this item equipped
 local function getItemSlot(itemName)
@@ -75,6 +77,26 @@ end
 -- Find a free item slot, or nil if both are full
 local function getFreeItemSlot()
 	for _, slot in ITEM_SLOTS do
+		if not player:GetAttribute("Equipped_" .. slot) then
+			return slot
+		end
+	end
+	return nil
+end
+
+-- Find which buff slot (if any) has this buff equipped
+local function getBuffSlot(buffName)
+	for _, slot in BUFF_SLOTS do
+		if player:GetAttribute("Equipped_" .. slot) == buffName then
+			return slot
+		end
+	end
+	return nil
+end
+
+-- Find a free buff slot, or nil if both are full
+local function getFreeBuffSlot()
+	for _, slot in BUFF_SLOTS do
 		if not player:GetAttribute("Equipped_" .. slot) then
 			return slot
 		end
@@ -241,13 +263,17 @@ local function updateItemPanel()
 	if panel.nameLabel then panel.nameLabel.Text = entry.displayName end
 	if panel.descLabel then panel.descLabel.Text = entry.description end
 
-	-- Determine button state
+	local unlocked = isUnlocked(entry)
 	local equippedSlot = getItemSlot(entry.name)
 	local buttonText
 	local buttonAction
 
-	if equippedSlot then
-		-- Already equipped — offer unequip
+	if not unlocked then
+		buttonText = ""
+		buttonAction = function()
+			requestPurchase(entry)
+		end
+	elseif equippedSlot then
 		buttonText = "Unequip"
 		buttonAction = function()
 			EquipWeapon:FireServer(equippedSlot, nil)
@@ -255,20 +281,27 @@ local function updateItemPanel()
 	else
 		local freeSlot = getFreeItemSlot()
 		if freeSlot then
-			-- Free slot available — equip
 			buttonText = "Equip"
 			buttonAction = function()
 				EquipWeapon:FireServer(freeSlot, entry.name)
 			end
 		else
-			-- Both slots full
 			buttonText = "2 Items Max"
 			buttonAction = nil
 		end
 	end
 
 	if panel.equipButton then
-		panel.equipButton.Text = buttonText
+		local equipLabel = panel.equipButton:FindFirstChild("EquipLabel")
+		if equipLabel then
+			if unlocked then
+				equipLabel.Text = buttonText
+				equipLabel.Visible = true
+			else
+				equipLabel.Visible = false
+			end
+		end
+		updatePriceDisplay(panel.equipButton, entry)
 	end
 
 	if panel.buttonConn then panel.buttonConn:Disconnect() end
@@ -410,6 +443,125 @@ local function buildItemList()
 end
 
 -- ---------------------------------------------------------------------------
+-- CurrWeapon panel update — buffs (passive)
+-- ---------------------------------------------------------------------------
+local function updateBuffPanel()
+	local panel = currWeaponPanels["buffs"]
+	if not panel then return end
+
+	local entry = selectedEntry["buffs"]
+	if not entry then
+		panel.frame.Visible = false
+		return
+	end
+
+	panel.frame.Visible = true
+
+	if panel.nameLabel then panel.nameLabel.Text = entry.displayName end
+	if panel.descLabel then panel.descLabel.Text = entry.description end
+
+	local unlocked = isUnlocked(entry)
+	local equippedSlot = getBuffSlot(entry.name)
+	local buttonText
+	local buttonAction
+
+	if not unlocked then
+		buttonText = ""
+		buttonAction = function()
+			requestPurchase(entry)
+		end
+	elseif equippedSlot then
+		buttonText = "Unequip"
+		buttonAction = function()
+			EquipWeapon:FireServer(equippedSlot, nil)
+		end
+	else
+		local freeSlot = getFreeBuffSlot()
+		if freeSlot then
+			buttonText = "Equip"
+			buttonAction = function()
+				EquipWeapon:FireServer(freeSlot, entry.name)
+			end
+		else
+			buttonText = "2 Buffs Max"
+			buttonAction = nil
+		end
+	end
+
+	if panel.equipButton then
+		local equipLabel = panel.equipButton:FindFirstChild("EquipLabel")
+		if equipLabel then
+			if unlocked then
+				equipLabel.Text = buttonText
+				equipLabel.Visible = true
+			else
+				equipLabel.Visible = false
+			end
+		else
+			panel.equipButton.Text = buttonText
+		end
+		updatePriceDisplay(panel.equipButton, entry)
+	end
+
+	if panel.buttonConn then panel.buttonConn:Disconnect() end
+
+	if panel.equipButton and buttonAction then
+		panel.buttonConn = panel.equipButton.Activated:Connect(buttonAction)
+	end
+end
+
+-- ---------------------------------------------------------------------------
+-- List building — buffs (passive)
+-- ---------------------------------------------------------------------------
+local function buildBuffList()
+	if #BuffRegistry == 0 then return end
+
+	local listFrame = cachedListFrames["buffs"]
+	local template = cachedTemplates["buffs"]
+	if not listFrame or not template then return end
+
+	for _, child in listFrame:GetChildren() do
+		if child ~= template and child:GetAttribute("Generated") then
+			child:Destroy()
+		end
+	end
+
+	for i, entry in BuffRegistry do
+		local item = template:Clone()
+		item.Name = entry.name
+		item.LayoutOrder = i
+		item:SetAttribute("Generated", true)
+		item:SetAttribute("WeaponName", entry.name)
+		item.Visible = true
+
+		CollectionService:RemoveTag(item, "WeaponListTemplate")
+
+		local nameLabel = item:FindFirstChild("WeaponName", true)
+		if nameLabel then nameLabel.Text = entry.displayName end
+
+		local unlocked = isUnlocked(entry)
+
+		local lockText = item:FindFirstChild("LockText", true)
+		if lockText then lockText.Visible = not unlocked end
+
+		local equippedIcon = item:FindFirstChild("EquippedText", true)
+		if equippedIcon then
+			equippedIcon.Visible = getBuffSlot(entry.name) ~= nil
+		end
+
+		local button = item:FindFirstChildOfClass("TextButton") or item:FindFirstChildOfClass("ImageButton")
+		if button then
+			button.Activated:Connect(function()
+				selectedEntry["buffs"] = entry
+				updateBuffPanel()
+			end)
+		end
+
+		item.Parent = listFrame
+	end
+end
+
+-- ---------------------------------------------------------------------------
 -- Debounced rebuild — batches rapid attribute changes into a single rebuild
 -- ---------------------------------------------------------------------------
 local rebuildPending = false
@@ -425,6 +577,8 @@ local function scheduleRebuild()
 		end
 		buildItemList()
 		updateItemPanel()
+		buildBuffList()
+		updateBuffPanel()
 	end)
 end
 
@@ -441,6 +595,10 @@ end
 setupCurrWeaponPanel("items", "LoadoutPageItems")
 cacheListData("items")
 buildItemList()
+
+setupCurrWeaponPanel("buffs", "LoadoutPagePassives")
+cacheListData("buffs")
+buildBuffList()
 
 -- Restore selection for already-equipped weapons
 for _, slot in { "primary", "secondary", "melee" } do
@@ -473,6 +631,20 @@ for _, slot in ITEM_SLOTS do
 end
 updateItemPanel()
 
+-- Restore buff selection
+for _, slot in BUFF_SLOTS do
+	local equippedName = player:GetAttribute("Equipped_" .. slot)
+	if equippedName then
+		for _, entry in BuffRegistry do
+			if entry.name == equippedName then
+				selectedEntry["buffs"] = entry
+				break
+			end
+		end
+	end
+end
+updateBuffPanel()
+
 -- Rebuild on attribute changes (equipped slots + unlock state)
 player.AttributeChanged:Connect(function(attr)
 	if string.find(attr, "^Unlocked_") then
@@ -491,5 +663,8 @@ player.AttributeChanged:Connect(function(attr)
 	elseif slot == "item1" or slot == "item2" then
 		buildItemList()
 		updateItemPanel()
+	elseif slot == "buff1" or slot == "buff2" then
+		buildBuffList()
+		updateBuffPanel()
 	end
 end)

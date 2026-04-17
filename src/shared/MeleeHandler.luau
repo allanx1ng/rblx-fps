@@ -45,6 +45,7 @@ function MeleeHandler:canSwing()
 end
 
 function MeleeHandler:swing()
+	if Players.LocalPlayer:GetAttribute("InGameSettingsOpen") then return end
 	local character = Players.LocalPlayer.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 then return end

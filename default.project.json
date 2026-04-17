@@ -21,7 +21,9 @@
         "GunFiredEffect": { "$className": "RemoteEvent" },
         "MeleeSwing": { "$className": "RemoteEvent" },
         "MeleeDamage": { "$className": "RemoteEvent" },
-        "CameraUpdate": { "$className": "UnreliableRemoteEvent" }
+        "UseSpeedPill": { "$className": "RemoteEvent" },
+        "CameraUpdate": { "$className": "UnreliableRemoteEvent" },
+        "LevelUp": { "$className": "RemoteEvent" }
       }
     },
 
@@ -135,6 +137,11 @@
           "$className": "Tool",
           "$properties": { "RequiresHandle": false },
           "GunScript": { "$path": "src/tools/RPG/GunScript.client.luau" }
+        },
+        "SpeedPill": {
+          "$className": "Tool",
+          "$properties": { "RequiresHandle": false },
+          "SpeedPillScript": { "$path": "src/tools/SpeedPill/SpeedPillScript.client.luau" }
         }
       }
     },
@@ -153,11 +160,12 @@
       "PersistentHUD": {
         "$className": "ScreenGui",
         "$properties": { "ResetOnSpawn": false },
-        "PersistentHUDController": { "$path": "src/gui/PersistentHUDController.client.luau" }
+        "PersistentHUDController": { "$path": "src/gui/PersistentHUDController.client.luau" },
+        "LevelUpIndicator": { "$path": "src/gui/LevelUpIndicator.client.luau" }
       },
       "InGameHUD": {
         "$className": "ScreenGui",
-        "$properties": { "ResetOnSpawn": false },
+        "$properties": { "ResetOnSpawn": false, "DisplayOrder": 10 },
         "InGameHUDController": { "$path": "src/gui/InGameHUDController.client.luau" }
       },
       "LobbyUI": {

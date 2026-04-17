@@ -18,6 +18,7 @@ local Workspace         = game:GetService("Workspace")
 
 local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
 local ItemRegistry   = require(ReplicatedStorage.Shared.ItemRegistry)
+local BuffRegistry   = require(ReplicatedStorage.Shared.BuffRegistry)
 
 
 local BOB_HEIGHT = 0.5       -- studs of vertical travel from rest
@@ -38,6 +39,9 @@ local function findEntry(itemName: string)
 	end
 	for _, item in ItemRegistry do
 		if item.name == itemName then return item end
+	end
+	for _, buff in BuffRegistry do
+		if buff.name == itemName then return buff end
 	end
 	return nil
 end

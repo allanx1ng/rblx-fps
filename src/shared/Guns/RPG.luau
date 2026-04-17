@@ -4,7 +4,7 @@ return {
 	autoFire = false,
 	capacity = 1,
 	damage = 500,  -- reference only; actual damage is tiered via blastTiers
-	range = 200,
+	range = 500,
 	fireRate = 0.5,
 
 	baseSpread = 0,
@@ -46,8 +46,9 @@ return {
 	-- Explosion — tiered damage by distance (must be sorted by radius ascending)
 	blastTiers = {
 		{ radius = 10, damage = 500 },
-		{ radius = 15, damage = 200 },
-		{ radius = 20, damage = 100 },
+		{ radius = 15, damage = 300 },
+		{ radius = 20, damage = 200 },
+		{ radius = 25, damage = 100 },
 		{ radius = 30, damage = 50 },
 	},
 }

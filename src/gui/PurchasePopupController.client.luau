@@ -32,6 +32,7 @@ local lobbyUI = script:FindFirstAncestor("LobbyUI")
 
 local PurchaseWeapon = ReplicatedStorage.Remotes.PurchaseWeapon
 local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
+local BuffRegistry   = require(ReplicatedStorage.Shared.BuffRegistry)
 
 local COIN_ICON = "rbxassetid://93087943622513"
 local ROBUX_ICON = "rbxasset://textures/ui/common/robux.png"
@@ -82,6 +83,11 @@ local function getCategoryLabel(entry)
 					return "Purchase Weapon"
 				end
 			end
+		end
+	end
+	for _, buff in BuffRegistry do
+		if buff.name == entry.name then
+			return "Purchase Buff"
 		end
 	end
 	return "Purchase Item"

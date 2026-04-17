@@ -14,7 +14,11 @@
 -- anything else tagged "Enemy_Zombie" are left alone.
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
+
+local Rewards = require(ServerScriptService.Server.Player.Rewards)
 
 local WaveSpawner = {}
 
@@ -152,11 +156,21 @@ function WaveSpawner.startWave(waveNumber)
 
 		activeZombies[clone] = true
 
-		-- Death: remove from active set and clean up corpse
+		-- Death: grant kill reward, remove from active set, and clean up corpse
 		local humanoid = clone:WaitForChild("Zombie", 5)
 		if humanoid then
 			humanoid.Died:Connect(function()
 				activeZombies[clone] = nil
+
+				-- Grant kill reward to the player who dealt the killing blow
+				local killerUserId = clone:GetAttribute("_LastDamagerUserId")
+				if killerUserId then
+					local killer = Players:GetPlayerByUserId(killerUserId)
+					if killer then
+						Rewards.grantKillReward(killer)
+					end
+				end
+
 				task.delay(CORPSE_CLEANUP_DELAY, function()
 					if clone.Parent then
 						clone:Destroy()

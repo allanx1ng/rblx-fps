@@ -17,16 +17,14 @@
 local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local ServerScriptService = game:GetService("ServerScriptService")
 
 local MapConfig = require(ReplicatedStorage.Shared.MapConfig)
 local WaveSpawner = require(script.Parent:WaitForChild("Zombies"):WaitForChild("WaveSpawner"))
-local WeaponTools = ServerStorage:WaitForChild("WeaponTools")
-local Melee = ReplicatedStorage.Shared:WaitForChild("Melee")
-local ThirdPersonWeapons = ReplicatedStorage:WaitForChild("ThirdPersonWeapons")
-
-local VALID_SLOTS = { "primary", "secondary", "melee", "item1", "item2" }
+local ToolManager = require(script.Parent:WaitForChild("ToolManager"))
+local Rewards = require(ServerScriptService.Server.Player.Rewards)
 
 -- ---------------------------------------------------------------------------
 -- Game loop constants
@@ -85,59 +83,8 @@ local function getMapSpawn(mapName)
 	return spawn
 end
 
--- ---------------------------------------------------------------------------
--- Tool management
--- ---------------------------------------------------------------------------
-local function stripAllTools(player)
-	local backpack = player:FindFirstChild("Backpack")
-	if backpack then
-		for _, child in backpack:GetChildren() do
-			if child:IsA("Tool") then child:Destroy() end
-		end
-	end
-	local character = player.Character
-	if character then
-		for _, child in character:GetChildren() do
-			if child:IsA("Tool") then child:Destroy() end
-		end
-	end
-end
-
-local function grantEquippedTools(player)
-	local backpack = player:FindFirstChild("Backpack")
-	if not backpack then return end
-
-	for _, slot in VALID_SLOTS do
-		local toolName = player:GetAttribute("Equipped_" .. slot)
-		if toolName then
-			local template = WeaponTools:FindFirstChild(toolName)
-			if template then
-				local tool = template:Clone()
-				tool:SetAttribute("Slot", slot)
-
-				-- Melee tools need a Handle from ThirdPersonWeapons so Roblox
-				-- handles gripping and the default slash animation automatically.
-				if Melee:FindFirstChild(toolName) then
-					local weaponModel = ThirdPersonWeapons:FindFirstChild(toolName)
-					if weaponModel then
-						local handle = weaponModel:FindFirstChild("Handle")
-						if handle then
-							local h = handle:Clone()
-							h.Name = "Handle"
-							h.Anchored = false
-							h.CanCollide = false
-							h.Massless = true
-							h.Parent = tool
-						end
-					end
-					tool.Grip = CFrame.new(0, 0, -1.7, 0, 0, 1, 1, 0, 0, 0, 1, 0)
-				end
-
-				tool.Parent = backpack
-			end
-		end
-	end
-end
+local stripAllTools = ToolManager.stripAllTools
+local grantEquippedTools = ToolManager.grantEquippedTools
 
 -- ---------------------------------------------------------------------------
 -- State transitions
@@ -343,6 +290,15 @@ local function runGameLoop()
 
 			-- -------- Wave --------
 			gameLoopState = STATE_WAVE
+
+			-- Snapshot players present at wave start (eligible for survival reward)
+			local waveParticipants = {}
+			for _, p in Players:GetPlayers() do
+				if p:GetAttribute("InGame") then
+					waveParticipants[p] = true
+				end
+			end
+
 			WaveSpawner.startWave(waveNumber)
 			local waveStartTime = tick()
 
@@ -372,6 +328,13 @@ local function runGameLoop()
 			end
 
 			if defeated then break end
+
+			-- Wave cleared — grant survival rewards to all wave participants
+			for participant in waveParticipants do
+				if participant.Parent then -- still connected
+					Rewards.grantWaveSurvivalReward(participant)
+				end
+			end
 
 			-- Wave cleared — brief pause showing the result
 			currentLabelDisplay = "Wave " .. waveNumber .. " Cleared!"
