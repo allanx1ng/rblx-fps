@@ -3,7 +3,7 @@ return {
 	autoFire = false,
 	capacity = 100,
 	damage = 150,
-	range = 800,
+	range = 999,
 	fireRate = 1,  -- ~650 RPM
 	pierceCount = 9,
 
@@ -31,8 +31,8 @@ return {
 	equipTime   = 0.4,
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),
 
-	headshotMultiplier = 3,
-	limbMultiplier     = 0.75,
+	headshotMultiplier = 4,
+	limbMultiplier     = 0.8,
 
 	-- Third-person view model
 	thirdPersonPoseType = "rifle",

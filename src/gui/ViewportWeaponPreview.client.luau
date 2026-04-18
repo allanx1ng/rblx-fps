@@ -11,9 +11,29 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local WeaponRegistry = require(ReplicatedStorage.Shared.WeaponRegistry)
+local ItemRegistry = require(ReplicatedStorage.Shared.ItemRegistry)
 
 local lobbyUI = script:FindFirstAncestor("LobbyUI")
 local viewModelsFolder = ReplicatedStorage:WaitForChild("ViewModels")
+local thirdPersonWeapons = ReplicatedStorage:WaitForChild("ThirdPersonWeapons")
+
+-- ---------------------------------------------------------------------------
+-- Lookups — must be declared before showWeapon which references them
+-- ---------------------------------------------------------------------------
+local displayNameToName = {}
+for _, slot in { "primary", "secondary", "melee" } do
+	local weapons = WeaponRegistry[slot]
+	if weapons then
+		for _, entry in weapons do
+			displayNameToName[entry.displayName] = entry.name
+		end
+	end
+end
+local itemNames = {}
+for _, entry in ItemRegistry do
+	displayNameToName[entry.displayName] = entry.name
+	itemNames[entry.name] = true
+end
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -31,6 +51,8 @@ end
 local weaponConfigs = {}
 local function ensureConfig(weaponName)
 	if weaponConfigs[weaponName] then return weaponConfigs[weaponName] end
+
+	-- Check Guns folder first
 	local gunsFolder = ReplicatedStorage:FindFirstChild("Shared")
 		and ReplicatedStorage.Shared:FindFirstChild("Guns")
 	if gunsFolder then
@@ -43,6 +65,22 @@ local function ensureConfig(weaponName)
 			end
 		end
 	end
+
+	-- Check Items/Actives folder
+	local activesFolder = ReplicatedStorage:FindFirstChild("Shared")
+		and ReplicatedStorage.Shared:FindFirstChild("Items")
+		and ReplicatedStorage.Shared.Items:FindFirstChild("Actives")
+	if activesFolder then
+		local configModule = activesFolder:FindFirstChild(weaponName)
+		if configModule then
+			local ok, cfg = pcall(require, configModule)
+			if ok then
+				weaponConfigs[weaponName] = cfg
+				return cfg
+			end
+		end
+	end
+
 	return nil
 end
 
@@ -134,17 +172,62 @@ local function showWeapon(state: ViewportState, weaponName: string)
 		return
 	end
 
-	-- Resolve viewModelName from config
-	local config = ensureConfig(weaponName)
-	local modelName = config and config.viewModelName or weaponName
+	-- For items, use ThirdPersonWeapons model (simpler, no arms to strip)
+	local model
+	if itemNames[weaponName] then
+		print("[ViewportWeaponPreview] Item detected:", weaponName)
+		local tpTemplate = thirdPersonWeapons:FindFirstChild(weaponName)
+		if not tpTemplate then
+			warn("[ViewportWeaponPreview] No ThirdPersonWeapons model found:", weaponName)
+			return
+		end
+		print("[ViewportWeaponPreview] Found template:", tpTemplate:GetFullName(), "class:", tpTemplate.ClassName)
+		model = tpTemplate:Clone()
 
-	local template = viewModelsFolder:FindFirstChild(modelName)
-	if not template then
-		warn("[ViewportWeaponPreview] No model found:", modelName)
-		return
+		-- Ensure the clone has a PrimaryPart set
+		if not model.PrimaryPart then
+			local handle = model:FindFirstChild("Handle")
+			if handle and handle:IsA("BasePart") then
+				model.PrimaryPart = handle
+			end
+		end
+
+		-- Debug: list parts in the model
+		local partCount = 0
+		for _, desc in model:GetDescendants() do
+			if desc:IsA("BasePart") then
+				partCount += 1
+				print("[ViewportWeaponPreview]   Part:", desc.Name, "Size:", desc.Size, "Transparency:", desc.Transparency)
+			end
+		end
+		print("[ViewportWeaponPreview] Total parts:", partCount)
+	else
+		-- Resolve viewModelName from config for weapons
+		local config = ensureConfig(weaponName)
+		local modelName = config and config.viewModelName or weaponName
+
+		local template = viewModelsFolder:FindFirstChild(modelName)
+		if not template then
+			warn("[ViewportWeaponPreview] No model found:", modelName)
+			return
+		end
+
+		model = template:Clone()
+
+		-- Remove arms (parts named "Left Arm", "Right Arm") — we only want the gun
+		for _, desc in model:GetDescendants() do
+			if desc:IsA("BasePart") then
+				local n = desc.Name
+				if n == "Left Arm" or n == "Right Arm" or n == "Torso" or n == "HumanoidRootPart" then
+					desc:Destroy()
+				end
+			end
+		end
+
+		-- Remove Humanoid (not needed for viewport display)
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		if humanoid then humanoid:Destroy() end
 	end
-
-	local model = template:Clone()
 
 	-- Strip scripts, sounds, particles, lights — we only want the visual mesh
 	for _, desc in model:GetDescendants() do
@@ -154,20 +237,6 @@ local function showWeapon(state: ViewportState, weaponName: string)
 		end
 	end
 
-	-- Remove arms (parts named "Left Arm", "Right Arm") — we only want the gun
-	for _, desc in model:GetDescendants() do
-		if desc:IsA("BasePart") then
-			local n = desc.Name
-			if n == "Left Arm" or n == "Right Arm" or n == "Torso" or n == "HumanoidRootPart" then
-				desc:Destroy()
-			end
-		end
-	end
-
-	-- Remove Humanoid (not needed for viewport display)
-	local humanoid = model:FindFirstChildOfClass("Humanoid")
-	if humanoid then humanoid:Destroy() end
-
 	-- Anchor all parts
 	for _, part in model:GetDescendants() do
 		if part:IsA("BasePart") then
@@ -175,35 +244,22 @@ local function showWeapon(state: ViewportState, weaponName: string)
 		end
 	end
 
-	-- Position model at origin
-	local primaryPart = model:FindFirstChild("RootPart") or model.PrimaryPart
-	if primaryPart then
-		model:PivotTo(CFrame.new())
-	end
+	-- Position model at origin (PivotTo works on any Model, even without PrimaryPart)
+	model:PivotTo(CFrame.new())
 
 	model.Parent = state.viewport
 	state.currentModel = model
 	state.spinAngle = 0
 
+	print("[ViewportWeaponPreview] Model parented to viewport:", state.viewport:GetFullName())
+
 	-- Set initial camera position
 	local center, extents = getModelBounds(model)
 	local maxExtent = math.max(extents.X, extents.Y, extents.Z)
 	local distance = maxExtent * 0.8 + 0.5
+	print("[ViewportWeaponPreview] Bounds — center:", center, "extents:", extents, "distance:", distance)
 
 	state.camera.CFrame = CFrame.new(center + Vector3.new(0, maxExtent * 0.1, distance), center)
-end
-
--- ---------------------------------------------------------------------------
--- Resolve weapon name from display name using WeaponRegistry
--- ---------------------------------------------------------------------------
-local displayNameToName = {}
-for _, slot in { "primary", "secondary", "melee" } do
-	local weapons = WeaponRegistry[slot]
-	if weapons then
-		for _, entry in weapons do
-			displayNameToName[entry.displayName] = entry.name
-		end
-	end
 end
 
 -- ---------------------------------------------------------------------------

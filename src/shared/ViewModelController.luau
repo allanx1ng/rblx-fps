@@ -21,6 +21,12 @@ local swingOffset    = CFrame.new()
 local swingTime      = -1  -- negative = not swinging
 local swingDuration  = 0.4 -- overridden per swing
 
+-- Item use animation state (raise to mouth, tilt, return)
+local useAnimOffset  = CFrame.new()
+local useTime        = -1  -- negative = not animating
+local useDuration    = 0.6
+local useTargetOffset = CFrame.new()
+
 -- Effect references, found after cloning
 local muzzlePoint       = nil
 local muzzleWorldPos    = nil  -- cached each RenderStepped to avoid physics-frame drift
@@ -47,6 +53,8 @@ local function destroyActive()
 	recoilOffset    = CFrame.new()
 	swingOffset     = CFrame.new()
 	swingTime       = -1
+	useAnimOffset   = CFrame.new()
+	useTime         = -1
 	muzzlePoint     = nil
 	muzzleWorldPos  = nil
 	muzzleEmitter   = nil
@@ -257,8 +265,34 @@ function ViewModelController.show(config)
 			end
 		end
 
+		-- Item use animation — raise to mouth, hold briefly, return
+		if useTime >= 0 then
+			local alpha = math.clamp(useTime / useDuration, 0, 1)
+
+			if alpha <= 0.3 then
+				-- Raise to mouth
+				local t = alpha / 0.3
+				local ease = t * t * (3 - 2 * t)
+				useAnimOffset = CFrame.new():Lerp(useTargetOffset, ease)
+			elseif alpha <= 0.6 then
+				-- Hold at mouth
+				useAnimOffset = useTargetOffset
+			else
+				-- Return to idle
+				local t = (alpha - 0.6) / 0.4
+				local ease = t * t * (3 - 2 * t)
+				useAnimOffset = useTargetOffset:Lerp(CFrame.new(), ease)
+			end
+
+			useTime += dt
+			if useTime > useDuration then
+				useTime = -1
+				useAnimOffset = CFrame.new()
+			end
+		end
+
 		local baseOffset = activeConfig.hipOffset:Lerp(computedAdsOffset, adsProgress)
-		rootPart.CFrame  = workspace.CurrentCamera.CFrame * baseOffset * recoilOffset * swingOffset * equipLerp
+		rootPart.CFrame  = workspace.CurrentCamera.CFrame * baseOffset * recoilOffset * swingOffset * useAnimOffset * equipLerp
 
 		if muzzlePoint then
 			muzzleWorldPos = muzzlePoint:IsA("Attachment") and muzzlePoint.WorldPosition or muzzlePoint.Position
@@ -318,6 +352,14 @@ function ViewModelController.onSwing(config)
 	swingDuration = config.swingDuration or 0.4
 	swingTime = 0
 	swingOffset = CFrame.new()
+end
+
+-- Called by item handlers (HealingPotion, SpeedPill) when the item is consumed
+function ViewModelController.onUse(config)
+	useDuration = config.useDuration or 0.6
+	useTargetOffset = config.useOffset or CFrame.new(0, 0.3, -0.3) * CFrame.Angles(math.rad(-40), 0, 0)
+	useTime = 0
+	useAnimOffset = CFrame.new()
 end
 
 function ViewModelController.getActiveModel()

@@ -23,7 +23,8 @@
         "MeleeDamage": { "$className": "RemoteEvent" },
         "UseSpeedPill": { "$className": "RemoteEvent" },
         "CameraUpdate": { "$className": "UnreliableRemoteEvent" },
-        "LevelUp": { "$className": "RemoteEvent" }
+        "LevelUp": { "$className": "RemoteEvent" },
+        "RestockItems": { "$className": "RemoteEvent" }
       }
     },
 
@@ -67,7 +68,7 @@
         },
         "HealingPotion": {
           "$className": "Tool",
-          "$properties": { "RequiresHandle": false },
+          "$properties": { "RequiresHandle": true },
           "HealingPotionScript": { "$path": "src/tools/HealingPotion/HealingPotionScript.client.luau" }
         },
         "M9": {
@@ -140,7 +141,7 @@
         },
         "SpeedPill": {
           "$className": "Tool",
-          "$properties": { "RequiresHandle": false },
+          "$properties": { "RequiresHandle": true },
           "SpeedPillScript": { "$path": "src/tools/SpeedPill/SpeedPillScript.client.luau" }
         }
       }

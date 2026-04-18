@@ -24,7 +24,18 @@ ReplicatedStorage.Remotes.UseSpeedPill.OnServerEvent:Connect(function(player)
 	-- Don't stack — reject if already active
 	if activeEffects[player.UserId] then return end
 
+	-- Check uses remaining on the tool
+	local tool = character:FindFirstChildOfClass("Tool")
+	if not tool or tool.Name ~= "SpeedPill" then return end
+	local usesValue = tool:FindFirstChild("UsesValue")
+	if usesValue and usesValue.Value <= 0 then return end
+
 	cooldowns[player.UserId] = now
+
+	-- Decrement uses
+	if usesValue then
+		usesValue.Value = usesValue.Value - 1
+	end
 	activeEffects[player.UserId] = true
 
 	-- Apply speed boost via attributes (SprintController reads these live)

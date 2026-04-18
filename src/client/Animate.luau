@@ -291,10 +291,13 @@ local function setupCharacter(character)
 	Humanoid.Seated:Connect(onSeated)
 	Humanoid.PlatformStanding:Connect(onPlatformStanding)
 
-	-- Melee tool hold animation — play toolnone when a melee tool is equipped
+	-- Tool hold animation — play toolnone when a melee or item tool is equipped
 	character.ChildAdded:Connect(function(child)
 		if not child:IsA("Tool") then return end
-		if not Melee:FindFirstChild(child.Name) then return end
+		local slot = child:GetAttribute("Slot") or ""
+		local isMelee = Melee:FindFirstChild(child.Name) ~= nil
+		local isItem = string.find(slot, "^item") ~= nil
+		if not isMelee and not isItem then return end
 
 		-- Play the default tool hold pose (right arm raised)
 		local animator = Humanoid:FindFirstChildOfClass("Animator")

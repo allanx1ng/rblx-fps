@@ -11,6 +11,7 @@ local player = Players.LocalPlayer
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 
 
 -- Each controller is spawned independently so a WaitForChild in one

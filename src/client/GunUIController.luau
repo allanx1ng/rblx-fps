@@ -64,11 +64,23 @@ local function onToolEquipped(tool)
 	local cooldownEndValue = tool:FindFirstChild("CooldownEndTime")
 
 	if not ammoValue or not spareAmmoValue or not capacityValue or not isReloadingValue then
-		-- Not a gun (e.g. melee, item) — show name and infinity, no ammo tracking
+		-- Not a gun (e.g. melee, item) — show name, no ammo tracking
 		gunUI.Enabled = true
 		gunNameLabel.Text = tool.Name
-		currentAmmoLabel.Text = ""
-		spareAmmoLabel.Text = "\u{221E}"
+
+		-- Show uses count for consumable items, infinity for others
+		local usesValue = tool:FindFirstChild("UsesValue")
+		local maxUsesValue = tool:FindFirstChild("MaxUsesValue")
+		if usesValue and maxUsesValue then
+			currentAmmoLabel.Text = usesValue.Value .. "/" .. maxUsesValue.Value
+			spareAmmoLabel.Text = ""
+			table.insert(activeConnections, usesValue.Changed:Connect(function()
+				currentAmmoLabel.Text = usesValue.Value .. "/" .. maxUsesValue.Value
+			end))
+		else
+			currentAmmoLabel.Text = ""
+			spareAmmoLabel.Text = "\u{221E}"
+		end
 		reloadTextLabel.Visible = false
 
 		-- If this tool has cooldown support, wire up the countdown display

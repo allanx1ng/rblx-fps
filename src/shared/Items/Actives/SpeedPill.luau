@@ -8,6 +8,11 @@ return {
 	infiniteStamina = true,
 	duration = 20,
 	cooldown = 30,
+	maxUses = 2,
+
+	-- Use animation: raise to mouth and tilt (shared with HealingPotion)
+	useDuration = 0.6,
+	useOffset = CFrame.new(0, 0.3, -0.3) * CFrame.Angles(math.rad(-40), 0, 0),
 
 	viewModelName = "SpeedPill",
 	hipOffset = CFrame.new(0.5, -0.5, -0.8),

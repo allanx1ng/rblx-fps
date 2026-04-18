@@ -34,6 +34,10 @@ end
 function SpeedPillHandler:canUse()
 	if (tick() - self.lastUseTime) < self.config.cooldown then return false end
 
+	-- Check uses remaining
+	local usesValue = self.tool:FindFirstChild("UsesValue")
+	if usesValue and usesValue.Value <= 0 then return false end
+
 	local player = Players.LocalPlayer
 	if player:GetAttribute("SpeedPillActive") then return false end
 
@@ -52,6 +56,9 @@ function SpeedPillHandler:use()
 	self.cooldownValue.Value = true
 	self.cooldownEndTime.Value = tick() + self.config.cooldown
 
+	-- Play use animation on viewmodel
+	ViewModelController.onUse(self.config)
+
 	local activeModel = workspace.CurrentCamera:FindFirstChild(self.config.viewModelName)
 	if activeModel then
 		local drinkSound = activeModel:FindFirstChild("DrinkSound")
@@ -65,7 +72,7 @@ function SpeedPillHandler:use()
 	end)
 end
 
-function SpeedPillHandler:startSession()
+function SpeedPillHandler:showViewModel()
 	ViewModelController.show({
 		isGun = false,
 		viewModelName = self.config.viewModelName,
@@ -78,6 +85,35 @@ function SpeedPillHandler:startSession()
 		recoilRotation = 0,
 		recoilRecovery = 10,
 	})
+end
+
+function SpeedPillHandler:startSession()
+	local usesValue = self.tool:FindFirstChild("UsesValue")
+
+	-- Don't show viewmodel if already out of uses
+	if usesValue and usesValue.Value <= 0 then
+		table.insert(self.sessionConnections, usesValue.Changed:Connect(function()
+			if usesValue.Value > 0 then
+				self:showViewModel()
+			end
+		end))
+		return
+	end
+
+	self:showViewModel()
+
+	-- Hide viewmodel when uses run out, re-show on restock
+	if usesValue then
+		table.insert(self.sessionConnections, usesValue.Changed:Connect(function()
+			if usesValue.Value <= 0 then
+				ViewModelController.hide()
+			else
+				if self.tool.Parent == Players.LocalPlayer.Character then
+					self:showViewModel()
+				end
+			end
+		end))
+	end
 end
 
 function SpeedPillHandler:endSession()

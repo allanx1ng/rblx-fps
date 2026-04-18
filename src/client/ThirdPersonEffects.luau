@@ -31,10 +31,34 @@ end
 
 local function setupLocalTPHiding(character)
 	local hiddenModels = {}
+	local hiddenToolHandles = {} -- Tool Handle parts to keep invisible
+
+	-- Hide Handle and its descendants inside item Tools (they have a Slot starting with "item")
+	local function processToolChild(child)
+		if not child:IsA("Tool") then return end
+		local slot = child:GetAttribute("Slot") or ""
+		if not string.find(slot, "^item") then return end
+		local handle = child:FindFirstChild("Handle")
+		if not handle then return end
+		for _, desc in handle:GetDescendants() do
+			if desc:IsA("BasePart") then
+				desc.LocalTransparencyModifier = 1
+				table.insert(hiddenToolHandles, desc)
+			end
+		end
+		if handle:IsA("BasePart") then
+			handle.LocalTransparencyModifier = 1
+			table.insert(hiddenToolHandles, handle)
+		end
+	end
 
 	local function processChild(child)
+		if child:IsA("Tool") then
+			processToolChild(child)
+			return
+		end
 		if not child:IsA("Model") then return end
-		if child:IsA("Tool") or child:IsA("Accessory") then return end
+		if child:IsA("Accessory") then return end
 
 		-- TP weapon models are welded via GunWeld on the Right Arm,
 		-- or can be identified by having a FireSound (server TP weapon)
@@ -77,6 +101,11 @@ local function setupLocalTPHiding(character)
 		for _, model in hiddenModels do
 			if model and model.Parent then
 				hideTPWeaponParts(model)
+			end
+		end
+		for _, handle in hiddenToolHandles do
+			if handle and handle.Parent then
+				handle.LocalTransparencyModifier = 1
 			end
 		end
 	end)

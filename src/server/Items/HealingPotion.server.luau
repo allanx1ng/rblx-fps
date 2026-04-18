@@ -21,7 +21,19 @@ ReplicatedStorage.Remotes.UseHealingPotion.OnServerEvent:Connect(function(player
 	local key = player.UserId .. "_" .. potionName
 	local lastUse = cooldowns[key] or 0
 	if tick() - lastUse < config.cooldown then return end
+
+	-- Check uses remaining on the tool
+	local tool = character:FindFirstChildOfClass("Tool")
+	if not tool or tool.Name ~= potionName then return end
+	local usesValue = tool:FindFirstChild("UsesValue")
+	if usesValue and usesValue.Value <= 0 then return end
+
 	cooldowns[key] = tick()
+
+	-- Decrement uses
+	if usesValue then
+		usesValue.Value = usesValue.Value - 1
+	end
 
 	if config.healToFull then
 		humanoid.Health = humanoid.MaxHealth

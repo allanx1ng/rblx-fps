@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Melee = ReplicatedStorage.Shared:WaitForChild("Melee")
+local ActiveItems = ReplicatedStorage.Shared:WaitForChild("Items"):WaitForChild("Actives")
 local ThirdPersonWeapons = ReplicatedStorage:WaitForChild("ThirdPersonWeapons")
 local WeaponTools = ServerStorage:WaitForChild("WeaponTools")
 
@@ -79,6 +80,39 @@ function ToolManager.grantTool(player, toolName, slot)
 			end
 		end
 		tool.Grip = CFrame.new(0, 0, -1.7, 0, 0, 1, 1, 0, 0, 0, 1, 0)
+	end
+
+	-- Third-person handle for item tools (clone from ThirdPersonWeapons if available)
+	if string.find(slot, "^item") and not tool:FindFirstChild("Handle") then
+		local weaponModel = ThirdPersonWeapons:FindFirstChild(toolName)
+		if weaponModel then
+			local handle = weaponModel:FindFirstChild("Handle")
+			if handle then
+				local h = handle:Clone()
+				h.Name = "Handle"
+				h.Anchored = false
+				h.CanCollide = false
+				h.Massless = true
+				h.Parent = tool
+			end
+		end
+	end
+
+	-- Add uses tracking for consumable item tools
+	if string.find(slot, "^item") then
+		local configModule = ActiveItems:FindFirstChild(toolName)
+		if configModule then
+			local config = require(configModule)
+			local maxUses = config.maxUses or 2
+			local usesValue = Instance.new("IntValue")
+			usesValue.Name = "UsesValue"
+			usesValue.Value = maxUses
+			usesValue.Parent = tool
+			local maxUsesValue = Instance.new("IntValue")
+			maxUsesValue.Name = "MaxUsesValue"
+			maxUsesValue.Value = maxUses
+			maxUsesValue.Parent = tool
+		end
 	end
 
 	tool.Parent = backpack

@@ -101,6 +101,9 @@ local function onPlayerAdded(player)
 	if not player:GetAttribute("Equipped_melee") then
 		player:SetAttribute("Equipped_melee", "Knife")
 	end
+	if not player:GetAttribute("Equipped_item1") then
+		player:SetAttribute("Equipped_item1", "HealingPotion")
+	end
 
 	player.CharacterAdded:Connect(function(_character)
 		-- Defer regrant so GameStateManager's CharacterAdded handler runs first

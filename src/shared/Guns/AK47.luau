@@ -9,9 +9,9 @@ return {
 
 	baseSpread = 0.7,
 	rapidFireSpread = 2.5,
-	movementSpread = 6.0,
+	movementSpread = 5.0,
 	spreadDecayRate = 13.0,
-	maxSpread = 7.5,
+	maxSpread = 7.0,
 
 	adsSpeed = 0.2,
 	adsMagnification = 1.2,
@@ -31,7 +31,7 @@ return {
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),
 
 	headshotMultiplier = 2.5,
-	limbMultiplier     = 0.7,
+	limbMultiplier     = 0.8,
 
 	-- Third-person view model
 	thirdPersonPoseType = "rifle",

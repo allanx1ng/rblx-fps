@@ -29,7 +29,7 @@ return {
 	recoilRecovery = 14,
 
 	headshotMultiplier = 1.5,
-	limbMultiplier     = 0.5,
+	limbMultiplier     = 0.6,
 
 	-- Third-person view model
 	thirdPersonPoseType = "pistol",

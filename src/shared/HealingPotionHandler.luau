@@ -36,6 +36,10 @@ end
 function HealingPotionHandler:canUse()
 	if (tick() - self.lastUseTime) < self.config.cooldown then return false end
 
+	-- Check uses remaining
+	local usesValue = self.tool:FindFirstChild("UsesValue")
+	if usesValue and usesValue.Value <= 0 then return false end
+
 	local character = Players.LocalPlayer.Character
 	if not character then return false end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -54,6 +58,9 @@ function HealingPotionHandler:use()
 	self.cooldownValue.Value = true
 	self.cooldownEndTime.Value = tick() + self.config.cooldown
 
+	-- Play use animation on viewmodel
+	ViewModelController.onUse(self.config)
+
 	-- Play drink sound if the viewmodel has one
 	local activeModel = workspace.CurrentCamera:FindFirstChild(self.config.viewModelName)
 	if activeModel then
@@ -70,8 +77,7 @@ function HealingPotionHandler:use()
 	end)
 end
 
-function HealingPotionHandler:startSession()
-	-- Show the healing potion viewmodel
+function HealingPotionHandler:showViewModel()
 	ViewModelController.show({
 		isGun = false,
 		viewModelName = self.config.viewModelName,
@@ -84,6 +90,37 @@ function HealingPotionHandler:startSession()
 		recoilRotation = 0,
 		recoilRecovery = 10,
 	})
+end
+
+function HealingPotionHandler:startSession()
+	local usesValue = self.tool:FindFirstChild("UsesValue")
+
+	-- Don't show viewmodel if already out of uses
+	if usesValue and usesValue.Value <= 0 then
+		-- Still watch for restock so viewmodel reappears
+		table.insert(self.sessionConnections, usesValue.Changed:Connect(function()
+			if usesValue.Value > 0 then
+				self:showViewModel()
+			end
+		end))
+		return
+	end
+
+	self:showViewModel()
+
+	-- Hide viewmodel when uses run out, re-show on restock
+	if usesValue then
+		table.insert(self.sessionConnections, usesValue.Changed:Connect(function()
+			if usesValue.Value <= 0 then
+				ViewModelController.hide()
+			else
+				-- Restocked — re-show if tool is still equipped
+				if self.tool.Parent == Players.LocalPlayer.Character then
+					self:showViewModel()
+				end
+			end
+		end))
+	end
 end
 
 function HealingPotionHandler:endSession()

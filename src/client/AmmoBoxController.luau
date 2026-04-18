@@ -10,6 +10,7 @@
 local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AMMO_BOX_TAG = "AmmoBox"
 local COOLDOWN = 1 -- seconds before the same box can be used again
@@ -70,6 +71,7 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, _player)
 	end
 
 	refillAllGuns()
+	ReplicatedStorage.Remotes.RestockItems:FireServer()
 
 	boxCooldowns[prompt] = true
 	prompt.Enabled = false

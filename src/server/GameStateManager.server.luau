@@ -94,6 +94,15 @@ local function sendToLobby(player)
 	player:SetAttribute("ActiveSlot", nil)
 	stripAllTools(player)
 
+	-- Heal to full on lobby return
+	local character = player.Character
+	if character then
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 then
+			humanoid.Health = humanoid.MaxHealth
+		end
+	end
+
 	local spawn = getLobbySpawn()
 	if spawn then
 		player.RespawnLocation = spawn

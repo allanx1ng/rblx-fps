@@ -30,7 +30,7 @@ return {
 	equipOffset = CFrame.new(0.2, -0.6, 0.3),
 
 	headshotMultiplier = 2,
-	limbMultiplier     = 0.7,
+	limbMultiplier     = 0.75,
 
 	-- Third-person view model
 	thirdPersonPoseType = "pistol",
