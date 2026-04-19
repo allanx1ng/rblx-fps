@@ -4,9 +4,11 @@
 --   Rewards.grantKillReward(player)           -- 10 gold + 10 XP
 --   Rewards.grantWaveSurvivalReward(player)   -- 50 gold + 50 XP
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local XP = require(ServerScriptService.Server.Player.XP)
+local DataService = require(ReplicatedStorage.Shared.DataService).server
 
 local Rewards = {}
 
@@ -17,8 +19,9 @@ local WAVE_GOLD = 50
 local WAVE_XP   = 50
 
 local function grantGold(player, amount)
-	local current = player:GetAttribute("Gold") or 0
-	player:SetAttribute("Gold", current + amount)
+	DataService:update(player, "gold", function(current)
+		return (current or 0) + amount
+	end)
 end
 
 function Rewards.grantKillReward(player)

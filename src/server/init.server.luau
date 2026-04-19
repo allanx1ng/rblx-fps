@@ -1,25 +1,25 @@
 -- Server bootstrap.
 --
 -- Most server logic lives in sibling scripts that auto-run:
---   CollisionGroups          — physics group setup + barrier tagging
---   Combat/Projectiles       — FireProjectile remote
---   Combat/Hitscan           — DealDamage remote
---   Combat/Melee             — MeleeSwing / MeleeDamage remotes
---   Items/HealingPotion      — UseHealingPotion remote
---   Loadout/Loadout          — slot management, EquipWeapon, PurchaseWeapon
---   Player/HealthRegen       — custom regen replacing Roblox default
---   GameStateManager         — wave loop, InGame transitions
---   ShopParts                — shop interaction parts
---   ThirdPersonPose          — third-person animation rig
---   Zombies/*                — zombie/wave logic
+--   DataInit                — DataService bootstrap + attribute bridge
+--   CollisionGroups         — physics group setup + barrier tagging
+--   Combat/Projectiles      — FireProjectile remote
+--   Combat/Hitscan          — DealDamage remote
+--   Combat/Melee            — MeleeSwing / MeleeDamage remotes
+--   Items/HealingPotion     — UseHealingPotion remote
+--   Loadout/Loadout         — slot management, EquipWeapon, PurchaseWeapon
+--   Player/HealthRegen      — custom regen replacing Roblox default
+--   GameStateManager        — wave loop, InGame transitions
+--   ShopParts               — shop interaction parts
+--   ThirdPersonPose         — third-person animation rig
+--   Zombies/*               — zombie/wave logic
 --
 -- This script handles only what doesn't fit any of those: HUD attribute
--- defaults and bootstrapping the XP ModuleScript.
+-- defaults and pre-loading the XP module so it's available for require.
 
 local Players = game:GetService("Players")
 
--- Booting the XP ModuleScript registers its PlayerAdded listener and exposes
--- grantXP(player, amount) for any other server script to require.
+-- Pre-load the XP module so other server scripts can require it.
 require(script:WaitForChild("Player"):WaitForChild("XP"))
 
 local function onPlayerAdded(player)

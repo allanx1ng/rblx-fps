@@ -7,6 +7,9 @@
       "Shared": {
         "$path": "src/shared"
       },
+      "Packages": {
+        "$path": "src/Packages"
+      },
       "Remotes": {
         "$className": "Folder",
         "DealDamage": { "$className": "RemoteEvent" },
@@ -24,7 +27,9 @@
         "UseSpeedPill": { "$className": "RemoteEvent" },
         "CameraUpdate": { "$className": "UnreliableRemoteEvent" },
         "LevelUp": { "$className": "RemoteEvent" },
-        "RestockItems": { "$className": "RemoteEvent" }
+        "RestockItems": { "$className": "RemoteEvent" },
+        "DataServiceRemote": { "$className": "RemoteEvent" },
+        "DataServiceFetchRemote": { "$className": "RemoteFunction" }
       }
     },
 
