@@ -63,7 +63,7 @@ return {
 		EnvironmentDiffuseScale = 0.3,
 		EnvironmentSpecularScale = 0.3,
 		ExposureCompensation    = 0,
-		GlobalShadows           = true,
+		GlobalShadows           = false,
 		ShadowSoftness          = 0.5,
 
 		FogColor = Color(14, 16, 22),
@@ -120,7 +120,7 @@ return {
 		EnvironmentDiffuseScale = 0.3,
 		EnvironmentSpecularScale = 0.3,
 		ExposureCompensation    = 0,
-		GlobalShadows           = true,
+		GlobalShadows           = false,
 		ShadowSoftness          = 0.5,
 
 		FogColor = Color(20,20,20),

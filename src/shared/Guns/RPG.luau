@@ -38,7 +38,7 @@ return {
 	thirdPersonGunOffset = Vector3.new(-0.151, -0.004, -0.8),
 
 	-- Projectile
-	projectileSpeed = 80,
+	projectileSpeed = 150,
 	-- Fallback visuals if Projectile part not found in weapon model
 	projectileSize = Vector3.new(0.3, 0.3, 1.5),
 	projectileColor = Color3.fromRGB(80, 80, 80),
@@ -46,9 +46,9 @@ return {
 	-- Explosion — tiered damage by distance (must be sorted by radius ascending)
 	blastTiers = {
 		{ radius = 10, damage = 500 },
-		{ radius = 15, damage = 300 },
-		{ radius = 20, damage = 200 },
-		{ radius = 25, damage = 100 },
-		{ radius = 30, damage = 50 },
+		{ radius = 20, damage = 300 },
+		{ radius = 25, damage = 200 },
+		{ radius = 30, damage = 100 },
+		{ radius = 40, damage = 50 },
 	},
 }

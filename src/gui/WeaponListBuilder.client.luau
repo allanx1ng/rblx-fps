@@ -369,7 +369,7 @@ local function buildWeaponList(slot)
 			elseif equipped then
 				lockText.Visible = false
 			else
-				lockText.Text = "Owned"
+				lockText.Text = ""
 				lockText.Visible = true
 			end
 		end

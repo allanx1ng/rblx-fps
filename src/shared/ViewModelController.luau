@@ -206,13 +206,15 @@ function ViewModelController.show(config)
 		else
 			warn("ViewModelController:", config.viewModelName, "has no MuzzlePoint — muzzle flash and projectile spawn will use fallback")
 		end
-		fireSound   = activeModel:FindFirstChild("FireSound")
+		
 		reloadSound = activeModel:FindFirstChild("ReloadSound")
 		emptySound  = activeModel:FindFirstChild("EmptySound")
 	end
 
 	local equipSound = activeModel:FindFirstChild("EquipSound")
 	if equipSound then equipSound:Play() end
+
+	fireSound   = activeModel:FindFirstChild("FireSound")
 
 	renderConnection = RunService.RenderStepped:Connect(function(dt)
 		-- Self-heal: if the model was destroyed for any reason, re-create it next frame
@@ -352,6 +354,9 @@ function ViewModelController.onSwing(config)
 	swingDuration = config.swingDuration or 0.4
 	swingTime = 0
 	swingOffset = CFrame.new()
+	if fireSound then
+		fireSound:Play()
+	end
 end
 
 -- Called by item handlers (HealingPotion, SpeedPill) when the item is consumed
