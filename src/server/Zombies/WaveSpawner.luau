@@ -26,21 +26,25 @@ local WaveSpawner = {}
 -- Tuning (keep behavior identical to the old standalone spawner)
 -- ---------------------------------------------------------------------------
 local BASE_ZOMBIE_COUNT = 3
-local COUNT_INCREMENT = 2
+local COUNT_INCREMENT = 4
 
 local BASE_HEALTH = 100
-local BASE_DAMAGE = 10
+local BASE_DAMAGE = 20
 local BASE_WALK_SPEED = 16
 
-local HEALTH_PER_WAVE = 15
-local DAMAGE_PER_WAVE = 2
-local SPEED_PER_WAVE = 0.3
+-- local HEALTH_PER_WAVE = 15
+-- local DAMAGE_PER_WAVE = 2
+-- local SPEED_PER_WAVE = 0.3
+
+local HEALTH_PER_WAVE = 0
+local DAMAGE_PER_WAVE = 0
+local SPEED_PER_WAVE = 0
 
 local ZOMBIE_TYPES = {
-	{ name = "Normal",  model = "NormalZombie",  baseWeight = 50, weightDecay = -3, minWeight = 10, speedMult = 1.0 },
-	{ name = "Runner",  model = "RunnerZombie",  baseWeight = 30, weightDecay = -1, minWeight = 10, speedMult = 1.3 },
-	{ name = "Bruiser", model = "BruiserZombie", baseWeight = 15, weightDecay = 2,  minWeight = 5,  speedMult = 0.6 },
-	{ name = "Spitter", model = "SpitterZombie", baseWeight = 5,  weightDecay = 2,  minWeight = 5,  speedMult = 0.7 },
+	{ name = "Normal",  model = "NormalZombie",  baseWeight = 50, weightDecay = -3, minWeight = 10, speedMult = 1.0, healthMult = 1.0 },
+	{ name = "Runner",  model = "RunnerZombie",  baseWeight = 30, weightDecay = -1, minWeight = 10, speedMult = 1.3, healthMult = 1.0 },
+	{ name = "Bruiser", model = "BruiserZombie", baseWeight = 15, weightDecay = 2,  minWeight = 5,  speedMult = 0.6, healthMult = 2.0 },
+	{ name = "Spitter", model = "SpitterZombie", baseWeight = 5,  weightDecay = 2,  minWeight = 5,  speedMult = 0.7, healthMult = 0.8 },
 }
 
 local SPAWN_TAG = "ZombieSpawn"
@@ -141,7 +145,7 @@ function WaveSpawner.startWave(waveNumber)
 		local clone = template:Clone()
 
 		clone:SetAttribute("ZombieType", zType.name)
-		clone:SetAttribute("MaxHealth", health)
+		clone:SetAttribute("MaxHealth", health * zType.healthMult)
 		clone:SetAttribute("Damage", damage)
 		clone:SetAttribute("WalkSpeed", walkSpeed * zType.speedMult)
 

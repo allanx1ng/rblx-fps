@@ -9,7 +9,7 @@ return {
 
 	baseSpread = 0.5,
 	rapidFireSpread = 1.8,
-	movementSpread = 3.5,
+	movementSpread = 3.0,
 	spreadDecayRate = 16.0,
 	maxSpread = 5.0,
 

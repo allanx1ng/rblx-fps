@@ -6,15 +6,15 @@ return {
 	range = 800,
 	fireRate = 0.09,  -- ~650 RPM
 
-	baseSpread = 1.0,
+	baseSpread = 0.6,
 	rapidFireSpread = 2,
-	movementSpread = 5,
+	movementSpread = 4.0,
 	spreadDecayRate = 15.0,
-	maxSpread = 6.0,
+	maxSpread = 5.5,
 
 	adsSpeed = 0.18,
 	adsMagnification = 1.3,
-	adsSpreadMultiplier = 0.4,
+	adsSpreadMultiplier = 0.35,
 
 	reloadTime = 2.2,
 	spareAmmo = 1000,  -- 6 extra mags

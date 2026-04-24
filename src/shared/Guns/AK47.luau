@@ -11,11 +11,11 @@ return {
 	rapidFireSpread = 2.5,
 	movementSpread = 5.0,
 	spreadDecayRate = 13.0,
-	maxSpread = 7.0,
+	maxSpread = 6.0,
 
 	adsSpeed = 0.2,
 	adsMagnification = 1.2,
-	adsSpreadMultiplier = 0.25,
+	adsSpreadMultiplier = 0.35,
 
 	reloadTime = 2.4,
 	spareAmmo = 150,
